@@ -1,0 +1,13 @@
+{
+  "name": "f1tv-subtitle-translator",
+  "version": "0.8.0",
+  "private": true,
+  "type": "module",
+  "description": "F1 TV official commentary subtitles translated into Simplified Chinese",
+  "engines": { "node": ">=22.16.0" },
+  "scripts": {
+    "start": "node server.mjs --open",
+    "build": "node scripts/build.mjs",
+    "test": "node --test tests/*.test.mjs"
+  }
+}

@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>F1 TV 字幕翻译 · 本机配置</title>
+  <link rel="stylesheet" href="/app/style.css">
+  <script src="/app/app.js" type="module"></script>
+</head>
+<body>
+  <main>
+    <header class="masthead"><a class="brand" href="https://github.com/1034701377-web/f1tv-subtitle-translator" target="_blank" rel="noopener noreferrer"><span class="mark" aria-hidden="true">中</span><span>F1 TV 字幕翻译</span></a><span id="service-status" class="pill">正在连接</span></header>
+    <div class="intro"><p class="eyebrow">让比赛，更好懂。</p><h1>准备好你的中文字幕</h1><p>配置一次，之后每次观看启动本机服务即可。</p></div>
+    <section class="card" aria-labelledby="config-title">
+      <div class="card-heading"><span class="step">01</span><div><h2 id="config-title">设置翻译 API</h2><p>默认使用 DeepSeek。<a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noopener noreferrer">获取自己的密钥 ↗</a></p></div><span id="config-status" class="badge">待配置</span></div>
+      <form id="config-form">
+        <label for="api-key">API 密钥</label>
+        <input id="api-key" type="password" placeholder="粘贴你自己的 API Key" autocomplete="off" spellcheck="false" maxlength="1024" aria-describedby="key-help">
+        <p class="hint" id="key-help">密钥仅保存在这台电脑的 .env 文件中，不会写入脚本。</p>
+        <details id="advanced"><summary>其他模型或接口</summary><div class="advanced-fields">
+          <label for="endpoint">完整接口地址</label><input id="endpoint" type="url" required value="https://api.deepseek.com/chat/completions" spellcheck="false" maxlength="2000">
+          <label for="model">模型名称</label><input id="model" type="text" required value="deepseek-flash" spellcheck="false" maxlength="200">
+          <label for="thinking">思考参数</label><select id="thinking"><option value="disabled">关闭思考（DeepSeek 默认）</option><option value="">不发送（其他兼容接口）</option><option value="enabled">开启思考</option></select>
+          <p class="hint">支持 OpenAI 格式的 Chat Completions 接口。使用其他服务时，填入该服务的密钥。</p>
+        </div></details>
+        <div class="form-bottom"><button class="button primary" id="save" type="submit" disabled>保存配置</button><p id="save-status" role="status" aria-live="polite"></p></div>
+      </form>
+    </section>
+    <div class="setup-grid">
+      <section class="card compact" aria-labelledby="install-title"><div class="card-heading"><span class="step">02</span><h2 id="install-title">安装字幕脚本</h2></div><p>需要提前安装篡改猴。安装后刷新 F1 TV 播放页，即可看到翻译控制台。</p><a class="button secondary" href="/dist/f1tv-zh.user.js" target="_blank" rel="noopener noreferrer">安装 / 更新脚本 <span aria-hidden="true">↗</span></a></section>
+      <section class="card compact" aria-labelledby="pair-title"><div class="card-heading"><span class="step">03</span><h2 id="pair-title">配对并开始观看</h2></div><p>复制配对码，在 F1 TV 的翻译控制台点「配对本机服务」并粘贴，然后开启翻译。</p><button class="button secondary" id="copy-pair" type="button" disabled>复制配对码 <span aria-hidden="true">→</span></button><p id="pair-status" class="hint" role="status" aria-live="polite"></p><div id="pair-fallback" hidden><label for="pair-code">手动复制配对码</label><input id="pair-code" readonly autocomplete="off"></div></section>
+    </div>
+    <aside class="watch-tip"><span class="tip-symbol" aria-hidden="true">▶</span><p><strong>官网开启 English 字幕，再开启翻译。</strong><br>直播可点「预留 50 秒翻译时间」，等待「准备就绪」再观看；播放后余量不足也会继续翻译。</p></aside>
+    <footer><p>观看期间保持本机服务窗口打开。重启服务后重新复制配对码，无需重填 API 密钥。</p><p>当前公开版翻译官方解说字幕；TR 独立音频翻译尚未包含。</p></footer>
+  </main>
+</body>
+</html>

@@ -1,0 +1,40 @@
+{
+  "manifest_version": 3,
+  "name": "F1 TV 中文 · Track FX 采集",
+  "version": "0.9.1",
+  "minimum_chrome_version": "116",
+  "description": "在面板中明确开关标签页声音采集，复用本机语音与翻译服务。",
+  "permissions": [
+    "activeTab",
+    "tabCapture",
+    "offscreen",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://f1tv.formula1.com/*",
+    "http://127.0.0.1/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "打开声音采集面板",
+    "default_popup": "popup.html"
+  },
+  "options_page": "options.html",
+  "content_scripts": [
+    {
+      "matches": [
+        "https://f1tv.formula1.com/*"
+      ],
+      "js": [
+        "bridge.js"
+      ],
+      "run_at": "document_start"
+    }
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'none'; connect-src http://127.0.0.1:3847"
+  }
+}

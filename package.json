@@ -1,13 +1,26 @@
 {
-  "name": "f1tv-subtitle-translator",
-  "version": "0.8.0",
+  "name": "f1tv-zh-subtitles",
+  "version": "0.9.1",
   "private": true,
   "type": "module",
-  "description": "F1 TV official commentary subtitles translated into Simplified Chinese",
-  "engines": { "node": ">=22.16.0" },
+  "description": "F1 TV Chinese commentary and programme-timed Track FX subtitles",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
-    "start": "node server.mjs --open",
+    "start": "node server.mjs",
     "build": "node scripts/build.mjs",
-    "test": "node --test tests/*.test.mjs"
+    "test": "node --test tests/*.test.mjs",
+    "check": "node scripts/check.mjs",
+    "package:windows": "node scripts/package-windows.mjs",
+    "verify:release": "node scripts/verify-release.mjs"
+  },
+  "dependencies": {
+    "ws": "^8.22.0"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/1034701377-web/f1tv-subtitle-translator.git"
   }
 }

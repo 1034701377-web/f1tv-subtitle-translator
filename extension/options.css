@@ -1,0 +1,11 @@
+:root{color-scheme:dark;font:400 14px/1.7 "Microsoft YaHei",system-ui,sans-serif;font-synthesis:none;color:#E5EDF4;background:#162331}
+*{box-sizing:border-box}body{margin:0}main{width:min(520px,calc(100% - 36px));margin:50px auto 30px}
+h1,h2,p{margin:0;font-weight:400}h1{font-size:26px;line-height:1.4;margin:6px 0 9px}h2{font-size:16px}.eyebrow,.intro{color:#A9BACB}.eyebrow{font-size:12px}.intro{font-size:13px}
+.card{margin-top:25px;padding:24px;border:1px solid #33495E;border-radius:12px;background:#1D2C3C}.card>p{margin-top:8px;color:#A9BACB;font-size:13px}a{color:#83DCC5;text-underline-offset:3px}
+form{margin-top:22px}label{display:block;margin-bottom:7px;font-size:13px}input,button{font:inherit}input{width:100%;padding:11px 12px;border:1px solid #496176;border-radius:8px;background:#162331;color:#E5EDF4;font-size:13px}input::placeholder{color:#8EA4B9}input:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid #83DCC5;outline-offset:3px}
+.hint{color:#A9BACB;font-size:12px;margin-top:9px}button{width:100%;margin-top:19px;padding:10px 14px;border:1px solid #83DCC570;border-radius:8px;background:#83DCC50c;color:#83DCC5;cursor:pointer;transition:background .15s,border-color .15s}button:hover:enabled{background:#83DCC51a;border-color:#83DCC5}button:disabled{opacity:.5;cursor:default}
+#status:not(:empty){margin-top:16px;padding:10px 12px;border:1px solid #83DCC540;border-radius:8px;color:#83DCC5;background:#83DCC508;font-size:12px}#status[data-tone=error]:not(:empty){color:#E3AD9F;border-color:#E3AD9F40;background:#E3AD9F08}
+.next-step{padding:22px 1px 0}.next-step h2{font-size:14px}.next-step ol{padding-left:21px;margin:10px 0;color:#A9BACB;font-size:13px}.next-step li+li{margin-top:5px}.next-step p{color:#A9BACB;font-size:12px}
+footer{display:flex;justify-content:space-between;gap:15px;margin-top:25px;padding-top:15px;border-top:1px solid #33495E;color:#A9BACB;font-size:11px;font-variant-numeric:tabular-nums}
+@media(max-width:420px){main{margin-top:26px}.card{padding:20px}h1{font-size:23px}}
+@media(prefers-reduced-motion:reduce){button{transition:none}}

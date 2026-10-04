@@ -1,7 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { CueStore, TranslationQueue, SubtitleTimeline, sameSpeech } from '../src/core.js';
-import { SimulatedSource, TextTrackSource, MappedCueSource } from '../src/sources.js';
+import { TextTrackSource } from '../src/sources.js';
+import { SimulatedSource } from '../demo/simulated-source.js';
+import { MappedCueSource } from '../experiments/mapped-cue-source.js';
 const tick = () => new Promise(resolve => setImmediate(resolve));
 const cue = (id = 'a', start = 10, end = 15) => ({id,start,end,text:`English ${id}`});
 

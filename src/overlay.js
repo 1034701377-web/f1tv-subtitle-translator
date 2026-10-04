@@ -39,15 +39,17 @@ export class VideoOverlay {
       for (const name of ['pointerup','pointercancel','lostpointercapture']) listen(this.stack, name, event => this.endDrag(event));
       listen(this.stack, 'click', event => event.stopPropagation());
       listen(window, 'resize', () => { this.endDrag(); this.layout(); });
+      const draw = () => this.draw();
+      listen(video, 'seeking', () => {
+        for (const layer of this.layers) layer.timeline.seek();
+        this.draw();
+      });
+      listen(video, 'timeupdate', draw);
+      listen(document, 'fullscreenchange', draw);
+      this.timer = setInterval(draw, 80);
       document.body.append(this.host);
       this.setStyle(style); this.setOpacity(opacity);
     }
-    this.onSeek = () => { timeline.seek(); this.draw(); };
-    this.onDraw = () => this.draw();
-    video.addEventListener('seeking', this.onSeek);
-    video.addEventListener('timeupdate', this.onDraw);
-    document.addEventListener('fullscreenchange', this.onDraw);
-    this.timer = setInterval(this.onDraw, 80);
     this.draw();
   }
   setStyle(value) {
@@ -108,8 +110,8 @@ export class VideoOverlay {
       this.onPositionSave({ ...this.position });
     }
   }
-  draw() {
-    const time = this.getTime(), wall = performance.now()/1000;
+  renderLayer(wall) {
+    const time = this.getTime();
     if (Number.isFinite(this.lastTime) && Math.abs((time-this.lastTime)-(wall-this.lastWall)) > 1) this.timeline.seek();
     this.lastTime = time; this.lastWall = wall;
     const state = this.timeline.render(time);
@@ -118,15 +120,27 @@ export class VideoOverlay {
     if (this.above) this.line.hidden = !text;
     else this.line.style.visibility = text ? 'visible' : 'hidden';
     this.line.dataset.language = state.hasEnglish ? 'en' : 'zh';
-    this.root.layout();
-    this.onRender(this.host.style.display === 'block' && text ? state : {lines:[],text:'',hasEnglish:false});
+    return state;
+  }
+  draw() {
+    if (this.disposed || this.root.disposed) return;
+    if (this !== this.root) return this.root.draw();
+    const wall = performance.now()/1000;
+    const rendered = [...this.layers].map(layer => [layer, layer.renderLayer(wall)]);
+    this.layout();
+    const visible = this.host.style.display === 'block';
+    for (const [layer, state] of rendered) {
+      if (!layer.disposed) layer.onRender(visible && state.text ? state : {lines:[],text:'',hasEnglish:false});
+    }
   }
   dispose() {
-    clearInterval(this.timer); this.video.removeEventListener('seeking', this.onSeek);
-    this.video.removeEventListener('timeupdate', this.onDraw);
-    document.removeEventListener('fullscreenchange', this.onDraw);
-    if (this === this.root) { this.endDrag(); this.events.abort(); this.host.remove(); }
-    else { this.root.layers.delete(this); this.line.remove(); this.root.layout(); }
-    this.onRender({lines:[],text:'',hasEnglish:false});
+    if (this.disposed) return;
+    const layers = this === this.root ? [...this.layers] : [this];
+    for (const layer of layers) layer.disposed = true;
+    if (this === this.root) {
+      clearInterval(this.timer); this.endDrag(); this.events.abort();
+      this.layers.clear(); this.host.remove();
+    } else { this.root.layers.delete(this); this.line.remove(); this.root.layout(); }
+    for (const layer of layers) layer.onRender({lines:[],text:'',hasEnglish:false});
   }
 }

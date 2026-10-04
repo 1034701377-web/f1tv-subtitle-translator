@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>声音采集 · 本机配对</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <main>
+    <header><p class="eyebrow">F1 TV 中文 · 声音采集</p><h1>配对本机服务</h1><p class="intro">让采集扩展连接这台电脑上的翻译服务。</p></header>
+    <section class="card" aria-labelledby="pair-title">
+      <h2 id="pair-title">输入配对码</h2>
+      <p>打开<a href="http://127.0.0.1:3847/" target="_blank" rel="noopener noreferrer">本机配置页</a>，复制配对码后粘贴到这里。这里不需要 API 密钥。</p>
+      <form id="pair">
+        <label for="token">本机配对码</label>
+        <input id="token" type="password" autocomplete="off" spellcheck="false" maxlength="64" required placeholder="粘贴本机配置页的配对码" aria-describedby="pair-help">
+        <p id="pair-help" class="hint">配对保留到本次浏览器会话结束。浏览器或服务重启后，请重新配对。</p>
+        <button id="save" type="submit">保存配对</button>
+      </form>
+      <p id="status" role="status" aria-live="polite"></p>
+    </section>
+    <section class="next-step" aria-labelledby="next-title"><h2 id="next-title">配对后怎么用</h2><ol><li>在采集页准备 Track FX 并播放。</li><li>点击扩展图标，打开“采集声音”开关。</li></ol><p>重新配对会停止当前采集并恢复声音；保存配对不会自动开始采集。</p></section>
+    <footer><span>关闭扩展面板不会停止采集</span><span>v0.9.1</span></footer>
+  </main>
+  <script src="options.js"></script>
+</body>
+</html>

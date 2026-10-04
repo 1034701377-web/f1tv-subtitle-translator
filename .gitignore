@@ -2,6 +2,10 @@
 .env.*
 !.env.example
 node_modules/
+dist/*
+!dist/f1tv-zh.user.js
+local/
+release/
 *.log
 *.tmp
 .DS_Store

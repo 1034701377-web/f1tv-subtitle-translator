@@ -2,36 +2,128 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>F1 TV 字幕翻译 · 本机配置</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>F1 TV 翻译系统 · 本机设置</title>
   <link rel="stylesheet" href="/app/style.css">
   <script src="/app/app.js" type="module"></script>
 </head>
 <body>
   <main>
-    <header class="masthead"><a class="brand" href="https://github.com/1034701377-web/f1tv-subtitle-translator" target="_blank" rel="noopener noreferrer"><span class="mark" aria-hidden="true">中</span><span>F1 TV 字幕翻译</span></a><span id="service-status" class="pill">正在连接</span></header>
-    <div class="intro"><p class="eyebrow">让比赛，更好懂。</p><h1>准备好你的中文字幕</h1><p>配置一次，之后每次观看启动本机服务即可。</p></div>
-    <section class="card" aria-labelledby="config-title">
-      <div class="card-heading"><span class="step">01</span><div><h2 id="config-title">设置翻译 API</h2><p>默认使用 DeepSeek。<a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noopener noreferrer">获取自己的密钥 ↗</a></p></div><span id="config-status" class="badge">待配置</span></div>
+    <header class="masthead">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">中</span><span>F1 TV 翻译系统</span></div>
+      <span id="service-status" class="service-status" role="status">正在连接本机服务</span>
+    </header>
+
+    <div class="intro">
+      <p class="eyebrow">本机设置</p>
+      <h1>把注意力留给比赛。</h1>
+      <p>配置翻译服务，安装观看组件，再将它们配对。设置只保存在这台电脑上。</p>
+      <p class="requirements">使用前准备：Chrome 116 或更新版本 · 篡改猴 · 可正常观看的 F1 TV 账号</p>
+    </div>
+
+    <section class="card configuration" aria-labelledby="config-title">
+      <div class="section-heading">
+        <span class="step" aria-hidden="true">01</span>
+        <div><h2 id="config-title">配置服务</h2><p>普通字幕使用翻译 API；TR / 采访另需声音识别。</p></div>
+        <span id="config-status" class="badge">读取中</span>
+      </div>
+
       <form id="config-form">
-        <label for="api-key">API 密钥</label>
-        <input id="api-key" type="password" placeholder="粘贴你自己的 API Key" autocomplete="off" spellcheck="false" maxlength="1024" aria-describedby="key-help">
-        <p class="hint" id="key-help">密钥仅保存在这台电脑的 .env 文件中，不会写入脚本。</p>
-        <details id="advanced"><summary>其他模型或接口</summary><div class="advanced-fields">
-          <label for="endpoint">完整接口地址</label><input id="endpoint" type="url" required value="https://api.deepseek.com/chat/completions" spellcheck="false" maxlength="2000">
-          <label for="model">模型名称</label><input id="model" type="text" required value="deepseek-flash" spellcheck="false" maxlength="200">
-          <label for="thinking">思考参数</label><select id="thinking"><option value="disabled">关闭思考（DeepSeek 默认）</option><option value="">不发送（其他兼容接口）</option><option value="enabled">开启思考</option></select>
-          <p class="hint">支持 OpenAI 格式的 Chat Completions 接口。使用其他服务时，填入该服务的密钥。</p>
-        </div></details>
-        <div class="form-bottom"><button class="button primary" id="save" type="submit" disabled>保存配置</button><p id="save-status" role="status" aria-live="polite"></p></div>
+        <div class="config-grid">
+          <div class="config-group">
+            <div class="group-heading"><h3>字幕翻译</h3><span class="tag">必需</span></div>
+            <p class="group-description">默认使用 DeepSeek，将官方字幕和识别文字翻译成中文。</p>
+            <label for="translation-key">翻译 API 密钥</label>
+            <input id="translation-key" type="password" autocomplete="off" spellcheck="false" maxlength="1024" placeholder="填写你的 API Key" aria-describedby="key-help">
+            <p class="hint" id="key-help">已保存的密钥不会显示；留空可继续使用。</p>
+            <details id="translation-options">
+              <summary>模型与接口设置</summary>
+              <div class="advanced-fields">
+                <label for="translation-endpoint">完整接口地址</label>
+                <input id="translation-endpoint" type="url" required spellcheck="false" maxlength="2000" value="https://api.deepseek.com/chat/completions">
+                <label for="translation-model">模型名称</label>
+                <input id="translation-model" type="text" required spellcheck="false" maxlength="200" value="deepseek-flash">
+                <label for="translation-thinking">思考模式</label>
+                <select id="translation-thinking">
+                  <option value="disabled">关闭思考（默认）</option>
+                  <option value="enabled">开启思考</option>
+                  <option value="">不发送此参数</option>
+                </select>
+                <p class="hint">其他服务需兼容 Chat Completions 接口，并使用对应的密钥。</p>
+              </div>
+            </details>
+          </div>
+
+          <div class="config-group asr-group">
+            <div class="group-heading">
+              <div class="heading-with-tag"><h3>TR 声音识别</h3><span class="tag">可选</span></div>
+              <label class="switch" for="asr-enabled"><input id="asr-enabled" type="checkbox" role="switch" aria-label="启用 TR 声音识别"><span class="switch-track" aria-hidden="true"></span></label>
+            </div>
+            <p class="group-description">识别采集页的 Track FX 音轨，再交给翻译服务。关闭时仍可使用普通字幕。</p>
+            <p id="asr-off-note" class="optional-note">需要 TR / 采访字幕时，再打开并配置。</p>
+            <fieldset id="asr-fields" disabled hidden>
+              <legend class="sr-only">声音识别服务配置</legend>
+              <label for="asr-key">声音识别 API 密钥</label>
+              <input id="asr-key" type="password" autocomplete="off" spellcheck="false" maxlength="1024" placeholder="填写百炼 API Key">
+              <p class="hint">已保存的密钥留空保留。</p>
+              <label for="asr-endpoint">完整 WebSocket 地址</label>
+              <input id="asr-endpoint" type="url" spellcheck="false" maxlength="2000" placeholder="填写服务商提供的完整 wss:// 地址">
+              <p class="hint">从你的百炼工作空间复制完整地址。</p>
+              <label for="asr-model">识别模型名称</label>
+              <input id="asr-model" type="text" spellcheck="false" maxlength="200" value="qwen-audio-3.1-asr-flash-streaming">
+            </fieldset>
+          </div>
+        </div>
+        <div class="form-bottom">
+          <button id="save" class="button primary" type="submit" disabled>保存配置</button>
+          <p id="save-status" class="feedback" role="status" aria-live="polite">连接后即可设置。</p>
+        </div>
+        <p class="privacy-note">密钥只写入本机配置文件，由本机服务用于调用你设置的 API。</p>
       </form>
     </section>
+
     <div class="setup-grid">
-      <section class="card compact" aria-labelledby="install-title"><div class="card-heading"><span class="step">02</span><h2 id="install-title">安装字幕脚本</h2></div><p>需要提前安装篡改猴。安装后刷新 F1 TV 播放页，即可看到翻译控制台。</p><a class="button secondary" href="/dist/f1tv-zh.user.js" target="_blank" rel="noopener noreferrer">安装 / 更新脚本 <span aria-hidden="true">↗</span></a></section>
-      <section class="card compact" aria-labelledby="pair-title"><div class="card-heading"><span class="step">03</span><h2 id="pair-title">配对并开始观看</h2></div><p>复制配对码，在 F1 TV 的翻译控制台点「配对本机服务」并粘贴，然后开启翻译。</p><button class="button secondary" id="copy-pair" type="button" disabled>复制配对码 <span aria-hidden="true">→</span></button><p id="pair-status" class="hint" role="status" aria-live="polite"></p><div id="pair-fallback" hidden><label for="pair-code">手动复制配对码</label><input id="pair-code" readonly autocomplete="off"></div></section>
+      <section class="card" aria-labelledby="install-title">
+        <div class="section-heading"><span class="step" aria-hidden="true">02</span><div><h2 id="install-title">安装组件</h2><p>字幕脚本负责显示，采集扩展负责听取 TR。</p></div></div>
+        <div class="install-item">
+          <h3>字幕脚本 <span class="inline-note">必需</span></h3>
+          <p>先在 Chrome 安装篡改猴，再点击下方按钮安装脚本。</p>
+          <a class="button secondary" href="/dist/f1tv-zh.user.js" target="_blank" rel="noopener noreferrer">安装 / 更新字幕脚本 <span aria-hidden="true">↗</span></a>
+        </div>
+        <div class="install-item">
+          <h3>声音采集扩展 <span class="inline-note">使用 TR 时安装</span></h3>
+          <p>打开 Chrome「管理扩展程序」，开启「开发者模式」，点「加载已解压的扩展程序」，选择系统文件夹中的：</p>
+          <div class="path-row"><code id="extension-path">dist\chrome-extension</code><button id="copy-extension" class="text-button" type="button">复制目录</button></div>
+          <p id="extension-copy-status" class="hint feedback" role="status" aria-live="polite"></p>
+          <div id="extension-fallback" class="copy-fallback" hidden><label for="extension-copy-value">手动复制目录</label><input id="extension-copy-value" readonly spellcheck="false"></div>
+        </div>
+      </section>
+
+      <section class="card pairing-card" aria-labelledby="pair-title">
+        <div class="section-heading"><span class="step" aria-hidden="true">03</span><div><h2 id="pair-title">配对使用</h2><p>同一个配对码，分别粘贴到脚本和扩展。</p></div></div>
+        <ol class="pairing-steps">
+          <li>保存配置，复制下方配对码。</li>
+          <li>刷新 F1 TV 播放页，在中文字幕控制台中配对本机服务，开启中文字幕。</li>
+          <li>需要 TR 时，打开采集扩展的「配对设置」，粘贴同一个配对码并保存。</li>
+        </ol>
+        <button id="copy-pair" class="button primary" type="button" disabled>复制配对码</button>
+        <p id="pair-status" class="hint feedback" role="status" aria-live="polite">请先保存有效的服务配置。</p>
+        <div id="pair-fallback" class="copy-fallback" hidden><label for="pair-code">手动复制配对码</label><input id="pair-code" readonly autocomplete="off" spellcheck="false"></div>
+        <p class="pairing-note">修改 API 配置后，已有配对仍然有效。重启本机服务后，请重新复制配对码完成配对。</p>
+      </section>
     </div>
-    <aside class="watch-tip"><span class="tip-symbol" aria-hidden="true">▶</span><p><strong>官网开启 English 字幕，再开启翻译。</strong><br>直播可点「预留 50 秒翻译时间」，等待「准备就绪」再观看；播放后余量不足也会继续翻译。</p></aside>
-    <footer><p>观看期间保持本机服务窗口打开。重启服务后重新复制配对码，无需重填 API 密钥。</p><p>当前公开版翻译官方解说字幕；TR 独立音频翻译尚未包含。</p></footer>
+
+    <details class="usage card">
+      <summary><span>使用方法</span><span class="summary-note">观看页、采集页如何配合</span></summary>
+      <div class="usage-content">
+        <p><strong>普通字幕：</strong>在 F1 TV 官网开启 English 字幕，再打开中文字幕。观看期间保持本机服务运行。</p>
+        <p><strong>TR / 采访：</strong>从观看页控制台打开采集页，在采集页准备 Track FX 并播放，再打开扩展的「采集声音」开关。采集开启时该标签页静音，关闭后恢复声音。</p>
+        <p><strong>预留翻译时间：</strong>直播时让观看页落后采集页约 50 秒。采集页持续播放，观看页可暂停等待；两页播放同一节目。字幕仍按官方节目时间显示，50 秒用于等待识别和翻译。</p>
+        <p><strong>回放模拟：</strong>在脚本中启用回放模式，让采集页先播放约 50 秒，再播放观看页。关闭扩展面板不会停止采集；结束时关闭「采集声音」。</p>
+      </div>
+    </details>
+    <footer><p>F1 TV 翻译系统 <span class="version">0.9.1</span></p><p>本机服务 · 设置保存在当前系统文件夹</p></footer>
   </main>
 </body>
 </html>

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>F1 TV 声音采集</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header>
+    <div><p class="eyebrow">F1 TV 中文</p><h1>声音采集</h1></div>
+    <div class="pairing"><button id="settings" class="text-button" type="button">配对设置</button><p id="pair-state">检查配对…</p></div>
+  </header>
+
+  <main>
+    <section class="capture-card" aria-label="采集控制">
+      <div class="switch-row">
+        <div><h2 id="switch-label">采集声音</h2><p id="state" class="state" role="status">读取状态…</p></div>
+        <button id="capture" class="switch" type="button" role="switch" aria-labelledby="switch-label" aria-describedby="switch-help notice" aria-checked="false" disabled><span></span></button>
+      </div>
+      <p id="switch-help" class="help">采集时标签页静音，关闭后恢复声音。</p>
+      <p id="notice" class="notice" hidden></p>
+    </section>
+
+    <section class="source" aria-label="采集来源">
+      <p id="source-label" class="section-label">当前标签页</p>
+      <p id="tab-title" class="tab-title">—</p>
+      <dl class="details">
+        <div><dt>页面</dt><dd id="page-label">—</dd></div>
+        <div><dt>音轨</dt><dd id="audio-label">—</dd></div>
+        <div><dt>节目时间</dt><dd id="programme-time">—</dd></div>
+      </dl>
+    </section>
+
+    <section class="metrics" aria-label="采集情况">
+      <dl>
+        <div><dt>已收到音频</dt><dd id="received">—</dd></div>
+        <div><dt>输入电平</dt><dd id="level">—</dd></div>
+        <div><dt>送去识别</dt><dd id="windows">—</dd></div>
+        <div><dt>中文缓存</dt><dd id="cues">—</dd></div>
+      </dl>
+    </section>
+    <p class="footnote">关闭面板不会停止采集。字幕显示、样式与观看位置在网页控制台操作。</p>
+    <footer><span>F1 TV 翻译系统</span><span>v0.9.1</span></footer>
+  </main>
+  <script src="popup.js"></script>
+</body>
+</html>

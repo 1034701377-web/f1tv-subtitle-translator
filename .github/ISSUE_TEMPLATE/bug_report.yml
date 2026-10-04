@@ -1,0 +1,45 @@
+name: 使用问题
+description: 报告启动、配对、字幕或声音采集问题
+title: "[问题] "
+body:
+  - type: markdown
+    attributes:
+      value: 请不要上传 .env、API 密钥、配对码或浏览器 Cookie。截图前遮住这些信息。
+  - type: input
+    id: version
+    attributes:
+      label: 系统版本
+      placeholder: 例如 0.9.1，使用 Windows 便携包
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Windows 与 Chrome 版本
+      placeholder: 例如 Windows 11，Chrome 140
+    validations:
+      required: true
+  - type: dropdown
+    id: component
+    attributes:
+      label: 出现问题的地方
+      options:
+        - 启动或本机配置页
+        - 安装或配对
+        - 官方解说字幕
+        - TR 声音采集或翻译
+        - 字幕显示时间
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 操作步骤与实际表现
+      description: 说明是直播、普通录播还是录播测试，并写下控制台显示的错误文字。
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望表现
+      description: 可以附已遮住敏感信息的截图。不需要上传赛事音视频。

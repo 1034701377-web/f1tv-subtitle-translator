@@ -1,18 +1,3 @@
-export class SimulatedSource {
-  constructor(cues, { leadSeconds = 30, now = () => performance.now() / 1000 } = {}) {
-    this.cues = cues; this.leadSeconds = leadSeconds; this.now = now;
-    this.sent = new Set(); this.startedAt = this.now(); this.onCues = () => {};
-  }
-  get head() { return this.leadSeconds + this.now() - this.startedAt; }
-  poll() {
-    const available = this.cues.filter(c => c.end <= this.head && !this.sent.has(c.id));
-    available.forEach(c => this.sent.add(c.id));
-    if (available.length) this.onCues(available);
-  }
-  start(onCues) { this.onCues = onCues; this.poll(); this.timer = setInterval(() => this.poll(), 200); }
-  stop() { clearInterval(this.timer); }
-}
-
 // Safest initial F1 adapter: inspect ALL loaded cues, not only activeCues.
 // A player may stop downloading captions when paused. Polling cannot fix that.
 // A future manifest/segment adapter can implement the same start/stop contract.
@@ -66,18 +51,3 @@ export class TextTrackSource {
   stop() { clearInterval(this.timer); this.releaseTrack(); this.seen.clear(); }
 }
 
-// Contract for a later HLS/DASH adapter. It must independently fetch caption
-// segments AND map their timestamps into this video's currentTime domain.
-// Refuse unmapped times instead of guessing a 30s offset.
-export class MappedCueSource {
-  constructor(mapTime) { this.mapTime = mapTime; this.onCues = null; }
-  start(onCues) { this.onCues = onCues; }
-  push(cues, metadata) {
-    const mapped = cues.map(c => ({ ...c,
-      id: `${metadata.epoch}:${c.id}`,
-      start: this.mapTime(c.start, metadata), end: this.mapTime(c.end, metadata) }));
-    if (mapped.some(c => !Number.isFinite(c.start) || !Number.isFinite(c.end) || c.start < 0 || c.end <= c.start)) throw new Error('Unverified subtitle time mapping');
-    this.onCues?.(mapped);
-  }
-  stop() { this.onCues = null; }
-}

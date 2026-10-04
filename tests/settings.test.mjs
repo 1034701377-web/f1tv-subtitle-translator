@@ -9,6 +9,7 @@ import { createSettingsStore } from '../lib/settings.mjs';
 import { createServer } from '../server.mjs';
 import { createTranslator } from '../lib/translator.mjs';
 
+const { version } = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
 const original = 'TRANSLATION_MODE=api\nAPI_ENDPOINT=https://translate.example/chat\nAPI_MODEL=old-model\nAPI_KEY=translation-fixture-secret\nAPI_THINKING=disabled\nAPI_TIMEOUT_MS=9000\nASR_ENDPOINT=wss://speech.example/inference\nASR_MODEL=qwen-audio-3.1-asr-flash-streaming\nDASHSCOPE_API_KEY=speech-fixture-secret\nASR_TIMEOUT_MS=42000\nCUSTOM_SETTING="keep this # value"\n';
 const changes = () => ({ translation: { key: '', endpoint: 'https://translate.example/chat', model: 'new-model', thinking: 'disabled' },
   asr: { key: '', enabled: false, endpoint: '', model: '' } });
@@ -124,7 +125,7 @@ test('configuration API is same-origin and authenticated, saves without changing
   const session = await (await fetch(s.base + '/api/session', { headers: s.headers })).json();
   assert.equal(session.token, s.session.token);
   assert.equal(session.mode, 'api'); assert.equal(session.asr, false);
-  assert.equal((await (await fetch(s.base + '/api/health')).json()).version, '0.9.0');
+  assert.equal((await (await fetch(s.base + '/api/health')).json()).version, version);
 });
 
 test('saving during active ASR is rejected without changing the env file', async t => {

@@ -4,13 +4,15 @@
 
 Chinese subtitles for F1 TV / F1TV: translate official commentary captions and transcribe Track FX team radio (TR) and interviews.
 
-**[下载 Windows 便携版 v0.9.1](https://github.com/1034701377-web/f1tv-subtitle-translator/releases/download/v0.9.1/F1TV-ZH-Windows-x64-v0.9.1.zip)** · [版本说明](https://github.com/1034701377-web/f1tv-subtitle-translator/releases/tag/v0.9.1) · [安装教程](docs/Windows使用说明.md)
+**[下载 Windows 便携版 v0.9.2](https://github.com/1034701377-web/f1tv-subtitle-translator/releases/download/v0.9.2/F1TV-ZH-Windows-x64-v0.9.2.zip)** · [版本说明](https://github.com/1034701377-web/f1tv-subtitle-translator/releases/tag/v0.9.2) · [安装教程](docs/Windows使用说明.md)
+
+v0.9.2 修复刚结束比赛的录播字幕读取失败：兼容直播遗留的字幕时间戳与清单序号，仍按官方节目时间显示。
 
 ## Windows 快速开始
 
 准备 **Windows 10/11 64 位、Chrome 116 或更新版本、篡改猴，以及能正常播放目标节目的 F1 TV 账号**。翻译模型和可选的语音识别服务使用你自己的 API 额度。
 
-1. 点击上方下载链接，或在 Releases 的 **Assets** 下载 `F1TV-ZH-Windows-x64-v0.9.1.zip`。便携包内置运行时，无需安装 Node.js，也无需执行 npm；GitHub 自动生成的 `Source code (zip)` 是源码包。
+1. 点击上方下载链接，或在 Releases 的 **Assets** 下载 `F1TV-ZH-Windows-x64-v0.9.2.zip`。便携包内置运行时，无需安装 Node.js，也无需执行 npm；GitHub 自动生成的 `Source code (zip)` 是源码包。
 2. 将整个 ZIP 解压到一个固定文件夹，双击 `start-service.cmd`。观看期间保持服务窗口打开；首页未自动打开时，访问 **http://127.0.0.1:3847/**。
 3. 在首页保存**翻译模型的 API** 配置。默认是 DeepSeek；仅用官方解说中文字幕时，不需要配置 TR 声音识别。
 4. 在首页点击“安装 / 更新字幕脚本”，由篡改猴完成安装。刷新 F1 TV 播放页，在中文字幕控制台点击“配对本机服务”，粘贴首页复制的配对码。**配对码不是 AI 模型 API 密钥。**

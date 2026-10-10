@@ -42,6 +42,7 @@ export function parseHlsVodPlaylist(text, baseUrl) {
   let nextDuration = null;
   let firstSequence = 0;
   let sawSequence = false;
+  let sawDiscontinuitySequence = false;
   let sawType = false;
   let ended = false;
 
@@ -72,6 +73,13 @@ export function parseHlsVodPlaylist(text, baseUrl) {
         }
         firstSequence = unsignedInteger(line.slice('#EXT-X-MEDIA-SEQUENCE:'.length), 'HLS media sequence');
         sawSequence = true;
+      } else if (line.startsWith('#EXT-X-DISCONTINUITY-SEQUENCE:')) {
+        if (sawDiscontinuitySequence || segments.length || nextDuration !== null) {
+          throw new Error('Invalid HLS discontinuity sequence placement');
+        }
+        // A retained broadcast sequence does not shift a complete VOD timeline.
+        unsignedInteger(line.slice('#EXT-X-DISCONTINUITY-SEQUENCE:'.length), 'HLS discontinuity sequence');
+        sawDiscontinuitySequence = true;
       } else if (line.startsWith('#EXT-X-VERSION:')) {
         if (unsignedInteger(line.slice('#EXT-X-VERSION:'.length), 'HLS version') < 1) {
           throw new Error('Invalid HLS version');

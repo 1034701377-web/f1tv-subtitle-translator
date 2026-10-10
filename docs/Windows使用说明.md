@@ -1,6 +1,6 @@
 # Windows 使用说明
 
-本文适用于 `F1TV-ZH-Windows-x64-v0.9.1.zip` 便携包。从[项目 Releases](https://github.com/1034701377-web/f1tv-subtitle-translator/releases/tag/v0.9.1)的 Assets 下载。不要把 `Source code (zip)` 当作便携包。
+本文适用于 `F1TV-ZH-Windows-x64-v0.9.2.zip` 便携包。从[项目 Releases](https://github.com/1034701377-web/f1tv-subtitle-translator/releases/tag/v0.9.2)的 Assets 下载。不要把 `Source code (zip)` 当作便携包。
 
 ## 1. 解压并启动
 

@@ -11,7 +11,7 @@ import { createLiveTranslator } from './lib/live-translate.mjs';
 import { createRadioService } from './lib/radio-service.mjs';
 import { createSettingsStore } from './lib/settings.mjs';
 
-export const VERSION = '0.9.1';
+export const VERSION = '0.9.2';
 const DEFAULT_ROOT = dirname(fileURLToPath(import.meta.url));
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8', '.svg': 'image/svg+xml', '.vtt': 'text/vtt; charset=utf-8', '.mp4': 'video/mp4', '.webm': 'video/webm' };
 

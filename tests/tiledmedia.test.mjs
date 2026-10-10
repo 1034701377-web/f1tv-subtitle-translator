@@ -48,3 +48,55 @@ test('late source response after stop cannot append cues or hide official subtit
   visibility.setHidden(true);assert.deepEqual(styles.get('visibility'),['hidden','important']);
   visibility.setHidden(false);assert.deepEqual(styles.get('visibility'),['visible','']);
 });
+
+function recentReplay(s) {
+  const origin = 1791622558.08;
+  Object.assign(s.view.currentContentTime, { isWallclockTimeSourceBased: true,
+    seekLowerBound: 0, seekUpperBound: 12000, bufferLowerBound: 0, bufferUpperBound: 12000 });
+  s.view.currentWallclockTime = { ...s.view.currentContentTime, currentPosition: origin * 1000 + 8000 };
+  for (const key of ['seekLowerBound', 'seekUpperBound', 'bufferLowerBound', 'bufferUpperBound']) {
+    s.view.currentWallclockTime[key] += origin * 1000;
+  }
+  const stamp = seconds => {
+    const ms = Math.round(seconds * 1000);
+    return `${Math.floor(ms / 3600000)}:${String(Math.floor(ms / 60000) % 60).padStart(2, '0')}:${String(Math.floor(ms / 1000) % 60).padStart(2, '0')}.${String(ms % 1000).padStart(3, '0')}`;
+  };
+  const absoluteVtt = () => vtt('Current').replace(/00:00:(\d+)\.000(?= -->|\n)/g, (_, second) => stamp(origin + Number(second)));
+  s.source.fetchText = async url => url.endsWith('m3u8')
+    ? playlist.replace('#EXTINF:', '#EXT-X-DISCONTINUITY-SEQUENCE:38\n#EXTINF:') : absoluteVtt();
+}
+
+test('recent VOD maps clear Unix captions with SDK bounds, not the wallclock playhead', async () => {
+  const s = setup(); recentReplay(s);
+  await s.source.poll();
+  assert.equal(s.source.validated, true);
+  assert.deepEqual(s.received.map(c => [c.start, c.end]), [[1, 4], [8, 10]]);
+  assert.equal(s.source.coversTime(6), true);
+  s.view.currentWallclockTime.seekUpperBound += 1000;
+  await s.source.poll();
+  assert.equal(s.source.validated, false);
+  assert.equal(s.source.coversTime(6), false);
+  assert.equal(s.received.length, 2);
+  s.source.stop();
+});
+
+test('recent VOD refuses missing or inconsistent clock anchors and mismatched official text', async () => {
+  for (const breakClock of [s => { delete s.view.currentWallclockTime; },
+    s => { s.view.currentWallclockTime.bufferLowerBound += 1000; },
+    s => { s.source.getOfficialText = () => 'Different'; }]) {
+    const s = setup(); recentReplay(s); breakClock(s);
+    await s.source.poll();
+    assert.equal(s.received.length, 0);
+    assert.equal(s.source.validated, false);
+    s.source.stop();
+  }
+});
+
+test('ordinary relative VOD captions remain relative even when SDK wallclock metadata exists', async () => {
+  const s = setup(); recentReplay(s);
+  s.source.fetchText = async url => url.endsWith('m3u8') ? playlist : vtt('Current');
+  await s.source.poll();
+  assert.equal(s.source.validated, true);
+  assert.deepEqual(s.received.map(c => [c.start, c.end]), [[1, 4], [8, 10]]);
+  s.source.stop();
+});

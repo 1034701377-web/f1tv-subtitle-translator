@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         F1 TV 中文字幕
 // @namespace    local.f1tv.zh
-// @version      0.9.1
+// @version      0.9.2
 // @description  翻译官方解说字幕及独立采集页的 Track FX 声音，中文按节目时间显示。
 // @match        https://f1tv.formula1.com/*
 // @run-at       document-idle
@@ -309,6 +309,7 @@ function parseHlsVodPlaylist(text, baseUrl) {
   let nextDuration = null;
   let firstSequence = 0;
   let sawSequence = false;
+  let sawDiscontinuitySequence = false;
   let sawType = false;
   let ended = false;
 
@@ -339,6 +340,13 @@ function parseHlsVodPlaylist(text, baseUrl) {
         }
         firstSequence = unsignedInteger(line.slice('#EXT-X-MEDIA-SEQUENCE:'.length), 'HLS media sequence');
         sawSequence = true;
+      } else if (line.startsWith('#EXT-X-DISCONTINUITY-SEQUENCE:')) {
+        if (sawDiscontinuitySequence || segments.length || nextDuration !== null) {
+          throw new Error('Invalid HLS discontinuity sequence placement');
+        }
+        // A retained broadcast sequence does not shift a complete VOD timeline.
+        unsignedInteger(line.slice('#EXT-X-DISCONTINUITY-SEQUENCE:'.length), 'HLS discontinuity sequence');
+        sawDiscontinuitySequence = true;
       } else if (line.startsWith('#EXT-X-VERSION:')) {
         if (unsignedInteger(line.slice('#EXT-X-VERSION:'.length), 'HLS version') < 1) {
           throw new Error('Invalid HLS version');
@@ -613,6 +621,18 @@ function tiledContentSeconds(view) {
   return time && Number.isFinite(time.currentPosition) ? time.currentPosition / 1000 : NaN;
 }
 
+function vodWallclockOrigin(view) {
+  const content = view.currentContentTime, wall = view.currentWallclockTime;
+  if (content?.eventType !== 'vod' || wall?.eventType !== 'vod' || !content.isWallclockTimeSourceBased) return NaN;
+  // Recent replays can retain Unix-time captions. Match corresponding SDK
+  // bounds; wallclock currentPosition can run ahead of the displayed picture.
+  const offsets = ['seekLowerBound', 'seekUpperBound', 'bufferLowerBound', 'bufferUpperBound']
+    .filter(key => Number.isFinite(content[key]) && Number.isFinite(wall[key]))
+    .map(key => wall[key] - content[key]);
+  if (offsets.length < 2 || offsets[0] < 1e12 || offsets.some(value => Math.abs(value - offsets[0]) > 20)) return NaN;
+  return offsets[0] / 1000;
+}
+
 class TiledMediaVodSource {
   constructor(view, { aheadSeconds = 45, fetchText, onStatus = () => {}, onReset = () => {}, getOfficialText = () => '' } = {}) {
     this.view = view; this.aheadSeconds = aheadSeconds; this.onStatus = onStatus; this.onReset = onReset;
@@ -624,7 +644,7 @@ class TiledMediaVodSource {
       if (text.length > 2000000) throw Error('字幕文件超出大小限制');
       return text;
     });
-    this.cache = new Map(); this.seen = new Set(); this.epoch = 0; this.validated = false;
+    this.cache = new Map(); this.seen = new Set(); this.epoch = 0; this.validated = false; this.origin = null;
     this.coverageStart = NaN; this.coverageEnd = NaN;
     this.onCues = () => {}; this.stopped = true; this.busy = false; this.url = null;
   }
@@ -633,7 +653,7 @@ class TiledMediaVodSource {
     return !this.stopped && this.validated && Number.isFinite(time) && time >= this.coverageStart && time < this.coverageEnd;
   }
   reset() {
-    this.cache.clear(); this.seen.clear(); this.playlist = null; this.url = null;
+    this.cache.clear(); this.seen.clear(); this.playlist = null; this.url = null; this.origin = null;
     this.coverageStart = NaN; this.coverageEnd = NaN;
     this.validated = false; this.epoch++; this.onReset();
   }
@@ -645,6 +665,7 @@ class TiledMediaVodSource {
     try {
       const clock = this.view.currentContentTime;
       if (clock?.eventType !== 'vod') throw Error('当前只验证了回放字幕，直播时间映射尚待验证');
+      const origin = vodWallclockOrigin(this.view);
       const player = this.view.associatedPlayer;
       const stream = player?.currentSubtitleTrack;
       if (!stream || player.desiredSubtitleTrackSelection?.disable) throw Error('请先在官网字幕菜单选择英文');
@@ -657,7 +678,9 @@ class TiledMediaVodSource {
       // translation server, console, persisted config, or error messages.
       if (parsedUrl.protocol !== 'https:' || !/(^|\.)formula1\.com$/i.test(parsedUrl.hostname)) throw Error('字幕资源不属于已验证的官方域名');
       if (this.stopped) return;
-      if (url !== this.url) { this.reset(); this.url = url; }
+      if (url !== this.url || (this.origin && (!Number.isFinite(origin) || Math.abs(origin - this.origin) > .02))) {
+        this.reset(); this.url = url;
+      }
       if (!this.playlist) {
         this.playlist = parseHlsVodPlaylist(await this.fetchText(url, controller.signal), url);
         if (!Number.isFinite(clock.contentDuration) || Math.abs(this.playlist.duration - clock.contentDuration / 1000) > 1) {
@@ -671,10 +694,20 @@ class TiledMediaVodSource {
       for (const segment of wanted) {
         if (this.stopped) return;
         if (!this.cache.has(segment.sequence)) {
-          this.cache.set(segment.sequence, parseWebVtt(await this.fetchText(segment.url, controller.signal), {epoch:`tiled-${this.epoch}`}));
+          let cues = parseWebVtt(await this.fetchText(segment.url, controller.signal), {epoch:`tiled-${this.epoch}`});
+          if (cues.length) {
+            const cueOrigin = cues.some(c => c.start >= 1e9) ? origin : 0;
+            if (!Number.isFinite(cueOrigin) || (this.origin !== null && Math.abs(cueOrigin - this.origin) > .02)) throw Error('VOD_CLOCK');
+            cues = cues.map(c => ({ ...c, start: Math.round((c.start - cueOrigin) * 1000) / 1000,
+              end: Math.round((c.end - cueOrigin) * 1000) / 1000 }));
+            if (cues.some(c => c.end < segment.start - 120 || c.start > segment.end + 120)) throw Error('VOD_CLOCK');
+            this.origin = cueOrigin;
+          }
+          this.cache.set(segment.sequence, cues);
         }
       }
       if (this.stopped) return;
+      if (this.origin && (!Number.isFinite(vodWallclockOrigin(this.view)) || Math.abs(vodWallclockOrigin(this.view) - this.origin) > .02)) throw Error('VOD_CLOCK');
       const available = [...new Map(wanted.flatMap(s => this.cache.get(s.sequence) || []).map(c => [c.id,c])).values()];
       const now = tiledContentSeconds(this.view);
       if (!this.validated) {
@@ -701,7 +734,9 @@ class TiledMediaVodSource {
       }
     } catch (error) {
       this.validated = false;
-      if (!this.stopped) this.onStatus({available:false, message:controller.signal.aborted ? '字幕读取超时，保留官方字幕' : '字幕读取或校准失败；请确认官网英文已开启、当前为回放且可播放'});
+      if (!this.stopped) this.onStatus({available:false, message:controller.signal.aborted ? '字幕读取超时，保留官方字幕'
+        : error.message === 'VOD_CLOCK' ? '回放字幕时钟尚未匹配，保留官方英文'
+        : '字幕读取或校准失败；请确认官网英文已开启、当前为回放且可播放'});
     } finally { clearTimeout(timeout); this.busy = false; }
   }
   stop() { this.stopped = true; clearInterval(this.timer); this.controller?.abort(); this.cache.clear(); this.seen.clear(); }

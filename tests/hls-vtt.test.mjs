@@ -36,6 +36,30 @@ test('ENDLIST identifies a complete VOD when optional PLAYLIST-TYPE is absent', 
   assert.equal(parseHlsVodPlaylist(source, BASE).segments[0].sequence, 0);
 });
 
+test('completed broadcast VOD keeps programme-relative time with retained discontinuity sequence', () => {
+  const body = Array.from({ length: 988 }, (_, index) => `#EXTINF:5.760,\nsegment-${index}.vtt`).join('\n');
+  const source = playlist(body, '#EXT-X-DISCONTINUITY-SEQUENCE:38\n').replace('MEDIA-SEQUENCE:1', 'MEDIA-SEQUENCE:311045584');
+  const result = parseHlsVodPlaylist(source, BASE);
+  assert.equal(result.segments[0].start, 0);
+  assert.equal(result.segments[0].sequence, 311045584);
+  assert.equal(result.segments.at(-1).sequence, 311046571);
+  assert.ok(Math.abs(result.duration - 5690.88) < 1e-7);
+  assert.deepEqual(result, parseHlsVodPlaylist(source.replace('#EXT-X-DISCONTINUITY-SEQUENCE:38\n', ''), BASE));
+});
+
+test('VOD rejects duplicate, invalid or late discontinuity sequence metadata', () => {
+  for (const value of ['', '-1', '1.5', 'NaN', '9007199254740992']) {
+    assert.throws(() => parseHlsVodPlaylist(playlist('#EXTINF:1,\na.vtt', `#EXT-X-DISCONTINUITY-SEQUENCE:${value}\n`), BASE), /discontinuity sequence/);
+  }
+  for (const source of [
+    playlist('#EXTINF:1,\na.vtt', '#EXT-X-DISCONTINUITY-SEQUENCE:0\n#EXT-X-DISCONTINUITY-SEQUENCE:38\n'),
+    playlist('#EXTINF:1,\n#EXT-X-DISCONTINUITY-SEQUENCE:38\na.vtt'),
+    playlist('#EXTINF:1,\na.vtt\n#EXT-X-DISCONTINUITY-SEQUENCE:38'),
+  ]) {
+    assert.throws(() => parseHlsVodPlaylist(source, BASE), /discontinuity sequence placement/);
+  }
+});
+
 test('rejects live and EVENT playlists, including VOD tags without ENDLIST', () => {
   const source = playlist('#EXTINF:5.760,\na.vtt');
   assert.throws(() => parseHlsVodPlaylist(source.replace('#EXT-X-ENDLIST', ''), BASE), /ENDLIST/);
@@ -44,7 +68,7 @@ test('rejects live and EVENT playlists, including VOD tags without ENDLIST', () 
 
 test('rejects discontinuities, master playlists, encryption and other unsupported addressing', () => {
   for (const tag of [
-    '#EXT-X-DISCONTINUITY', '#EXT-X-DISCONTINUITY-SEQUENCE:0',
+    '#EXT-X-DISCONTINUITY',
     '#EXT-X-STREAM-INF:BANDWIDTH=2000', '#EXT-X-MEDIA:TYPE=SUBTITLES',
     '#EXT-X-KEY:METHOD=AES-128,URI="key.bin"', '#EXT-X-MAP:URI="init.mp4"',
     '#EXT-X-BYTERANGE:10@0', '#EXT-X-GAP', '#EXT-X-PART:DURATION=1,URI="a.vtt"',

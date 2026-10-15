@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "F1 TV 中文字幕 · 解说与车队无线电",
-  "version": "0.10.0",
+  "version": "0.10.1",
   "minimum_chrome_version": "116",
   "description": "翻译 F1 TV 官方字幕与 Track FX 车队无线电，按节目时间显示。自备模型 API，无需油猴或本机服务。非官方项目。",
   "permissions": [

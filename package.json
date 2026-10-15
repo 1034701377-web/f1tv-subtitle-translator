@@ -1,6 +1,6 @@
 {
   "name": "f1tv-zh-subtitles",
-  "version": "0.10.0",
+  "version": "0.10.1",
   "private": true,
   "type": "module",
   "description": "F1 TV Chinese subtitles and programme-timed Track FX in one browser extension",

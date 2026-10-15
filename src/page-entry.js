@@ -165,7 +165,6 @@ function preparationFor(current = session) {
 }
 function refreshControls() {
   refreshPlaybackStatus();
-  pairButton.textContent = '扩展设置';
   if (collectorMode) { refreshCollectorControls(); return; }
   button.setAttribute('aria-checked', String(enabled));
   button.title = enabled ? '关闭全部中文字幕；声音采集不受影响' : '开启中文字幕';
@@ -584,7 +583,7 @@ button.addEventListener('click', async () => {
   if (enabled) { setEnabled(false); return; }
   try {
     providerHealth = await pageRequest('health');
-    if (!providerHealth.configured) { status.textContent = '首次使用：请在下方“扩展设置”保存翻译 API 配置。'; return; }
+    if (!providerHealth.configured) { status.textContent = '首次使用：点击下方齿轮“设置”，保存翻译 API 配置。'; return; }
     setEnabled(true);
   } catch { showTranslationIssue('EXTENSION_DISCONNECTED'); }
 });

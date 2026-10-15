@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-  <header><div><p class="eyebrow">F1 TV 中文字幕</p><h1>声音采集</h1></div><button id="settings" class="text-button" type="button">设置 <span aria-hidden="true">↗</span></button></header>
+  <header><div><p class="eyebrow">F1 TV 中文字幕</p><h1>声音采集</h1></div><button id="settings" class="icon-button" type="button" aria-label="设置" title="设置"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9.5 3-.5 2-2 1.2-2-.6-2.5 4.3L4 11.4v2.3l-1.5 1.4 2.5 4.3 2-.6L9 20l.5 2h5l.5-2 2-1.2 2 .6 2.5-4.3-1.5-1.4v-2.3l1.5-1.5L19 5.6l-2 .6L15 5l-.5-2Z"/><circle cx="12" cy="12.5" r="3.2"/></svg></button></header>
   <main>
     <section class="capture-control" aria-label="采集控制">
       <div class="switch-row"><div><h2 id="switch-label">采集此页声音</h2><p id="state" class="state" role="status">读取状态…</p></div><div class="switch-wrap"><span id="switch-value" class="switch-value" aria-hidden="true">OFF</span><button id="capture" class="switch" type="button" role="switch" aria-labelledby="switch-label" aria-describedby="switch-help notice" aria-checked="false" disabled><span></span></button></div></div>

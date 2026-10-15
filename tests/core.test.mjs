@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { CueStore, TranslationQueue, SubtitleTimeline, sameSpeech } from '../src/core.js';
 import { TextTrackSource } from '../src/sources.js';
-import { SimulatedSource } from '../demo/simulated-source.js';
-import { MappedCueSource } from '../experiments/mapped-cue-source.js';
+import { SimulatedSource } from './fixtures/simulated-source.js';
+import { MappedCueSource } from './fixtures/mapped-cue-source.js';
 const tick = () => new Promise(resolve => setImmediate(resolve));
 const cue = (id = 'a', start = 10, end = 15) => ({id,start,end,text:`English ${id}`});
 
@@ -90,6 +90,23 @@ test('mapping adapter refuses unknown timeline, overlapping cues finish independ
   const timeline=new SubtitleTimeline(store); timeline.setEnabled(true);
   assert.equal(timeline.render(4).text,'English a\nEnglish b');
   assert.equal(timeline.render(5).text,'English b'); assert.equal(timeline.render(7).text,'');
+});
+
+test('cue lookup preserves arbitrary overlaps, seeks, out-of-order arrival and cache eviction', () => {
+  const store = new CueStore({ maxCues: 96 });
+  const check = time => assert.deepEqual(store.at(time), store.sorted().filter(c => c.start <= time && time < c.end));
+  for (let i = 0; i < 140; i++) {
+    const start = (i * 37) % 139;
+    store.add(cue(String(i), start, start + (i % 19 === 0 ? 100 : 1 + i % 7)));
+    check(start); check(start + 1); check(start - .001);
+  }
+  for (let i = 240; i >= 0; i--) check(i / 2);
+  for (const time of [-Infinity, Infinity, NaN]) check(time);
+  store.clear();
+  assert.deepEqual(store.at(100), []);
+  const fresh = store.add(cue('fresh', 100, 101));
+  assert.deepEqual(store.at(100), [fresh]);
+  assert.deepEqual(store.at(101), []);
 });
 
 test('replaced English track resets cache so old channel cannot leak into new subtitles', () => {

@@ -26,11 +26,27 @@ export class CueStore {
   sorted() {
     if (this.sortedVersion !== this.version) {
       this.ordered = [...this.cues.values()].sort((a, b) => a.start - b.start || a.end - b.end || a.id.localeCompare(b.id));
+      let maxEnd = -Infinity;
+      this.maxEnds = this.ordered.map(cue => maxEnd = Math.max(maxEnd, cue.end));
       this.sortedVersion = this.version;
     }
     return this.ordered;
   }
-  at(time) { return this.sorted().filter(c => c.start <= time && time < c.end); }
+  at(time) {
+    const all = this.sorted();
+    let low = 0, high = all.length;
+    // Earlier cues may overlap later ones; prefix maxima safely skip only expired cues.
+    while (low < high) {
+      const middle = (low + high) >>> 1;
+      if (this.maxEnds[middle] <= time) low = middle + 1;
+      else high = middle;
+    }
+    const active = [];
+    for (let i = low; i < all.length && all[i].start <= time; i++) {
+      if (time < all[i].end) active.push(all[i]);
+    }
+    return active;
+  }
   context(cue) {
     const all = this.sorted();
     const i = all.findIndex(c => c.id === cue.id);

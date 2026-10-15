@@ -7,11 +7,11 @@ import { validCaptureSnapshot } from '../src/capture-protocol.js';
 
 // Run the real worker and its message listener; only browser APIs are replaced.
 const worker = (await readFile(new URL('../extension/background.js', import.meta.url), 'utf8'))
-  .replace(/^import\s+\{\s*validCaptureSnapshot\s*\}\s+from\s+['"]\.\.\/src\/capture-protocol\.js['"];?\s*/u, '');
+  .replace(/^import .*;\r?\n/gm, '');
 const extensionId = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 const extensionUrl = `chrome-extension://${extensionId}/`;
 const programmeUrl = 'https://f1tv.formula1.com/detail/1000010360/qualifying?f1zh-replay=1';
-const clock = { protocol: 1, programmeId: '1000010360:vod-test', time: 2040, origin: 0,
+const clock = { protocol: 1, client: 'extension', programmeId: '1000010360:vod-test', time: 2040, origin: 0,
   at: 1e12, epoch: 1, rate: 1, paused: false, muted: false, startProblem: null, problem: null,
   pageLabel: '回放模拟 · 采集页', audioLabel: 'Track FX' };
 
@@ -59,7 +59,7 @@ function fixture({ snapshot = clock, mediaStream } = {}) {
       async setBadgeBackgroundColor() {}, async setTitle() {},
     },
   };
-  vm.runInNewContext(worker, { chrome, URL, crypto: { randomUUID }, validCaptureSnapshot }, { filename: 'extension/background.js' });
+  vm.runInNewContext(worker, { chrome, URL, crypto: { randomUUID }, validCaptureSnapshot, installApiRouter() {}, publicSettings: async () => ({translation:{configured:true},asr:{configured:true,enabled:true}}) }, { filename: 'extension/background.js' });
   const popup = { id: extensionId, url: `${extensionUrl}popup.html` };
   const offscreen = { id: extensionId, url: `${extensionUrl}offscreen.html` };
   const page = id => ({ id: extensionId, tab: structuredClone(tabs.get(id)), frameId: 0, url: tabs.get(id).url });
@@ -78,7 +78,8 @@ test('opening the panel is inactive and never requests audio or changes tab soun
   const panel = await f.send({ type: 'panel-state', tabId: 1 });
   assert.equal(panel.active, false);
   assert.equal(panel.busy, false);
-  assert.equal(panel.paired, true);
+  assert.equal(panel.configured, true);
+  assert.equal(panel.asrConfigured, true);
   assert.equal(panel.supported, true);
   assert.equal(panel.problem, null);
   assert.equal(f.state.capture, undefined);

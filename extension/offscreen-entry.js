@@ -1,10 +1,12 @@
 import { CueStore, TranslationQueue } from '../src/core.js';
 import { TabAudioSource } from '../src/tab-audio-source.js';
-import { createAsrRequester } from '../src/asr-client.js';
+import { extensionRequest } from './rpc-client.js';
 import { ProgrammeRelay } from '../src/programme-relay.js';
 import { validCaptureSnapshot } from '../src/capture-protocol.js';
+import { installWebSocketHost } from './websocket-host.js';
 
-const service = 'http://127.0.0.1:3847';
+installWebSocketHost();
+
 const now = () => performance.timeOrigin + performance.now();
 let run = null;
 const background = (current, message) => chrome.runtime.sendMessage({ to: 'background', id: current.capture.id, ...message });
@@ -15,15 +17,6 @@ function startupFailure(stage, error) {
     'OverconstrainedError', 'SecurityError', 'NotSupportedError', 'InvalidStateError', 'AbortError']);
   const kind = names.has(error?.name) ? error.name : 'Error';
   return `采集启动失败：${stage}（${kind}）。请在采集页重试；若仍失败，请提供这条具体提示。`;
-}
-// Reuse the NDJSON parser/timeouts with a fetch transport inside the extension.
-function asrFetch(options) {
-  const controller = new AbortController();
-  void fetch(options.url, { method: 'POST', headers: options.headers, body: options.data,
-    signal: controller.signal, credentials: 'omit', redirect: 'error', cache: 'no-store' })
-    .then(response => options.onloadstart({ status: response.status, response: response.body }))
-    .catch(error => error.name === 'AbortError' ? options.onabort() : options.onerror());
-  return { abort: () => controller.abort() };
 }
 function report(current, message) {
   if (run !== current || current.stopping) return;
@@ -36,7 +29,8 @@ function report(current, message) {
     recognitionElapsedSeconds: current.recognitionElapsedSeconds ?? null,
     receivedSeconds: current.receivedSamples / (current.context?.sampleRate || 16000),
     audioDb: current.audioPeak > 0 ? Math.round(20 * Math.log10(current.audioPeak)) : null,
-    asrWindows: current.asrWindows } }).catch(() => {});
+    asrWindows: current.asrWindows, recognizedCues: current.recognizedCues, asrStage: current.asrStage,
+    lastError: current.asrError || current.translationError || '' } }).catch(() => {});
 }
 function fail(current, message) {
   if (run !== current || current.stopping) return;
@@ -115,8 +109,9 @@ async function refreshClock(current) {
 }
 async function start(message) {
   if (run) return { ok: false, message: '扩展已有采集会话，请先停止。' };
-  const current = { capture: message.capture, token: message.token, origin: message.snapshot.origin,
+  const current = { capture: message.capture, origin: message.snapshot.origin,
     pcm: [], clocks: [], clock: null, receivedSamples: 0, audioPeak: 0, asrWindows: 0,
+    recognizedCues: 0, asrStage: 'waiting', asrError: '', translationError: '',
     lastClockAt: now(), message: '已接入本页音频，首个识别窗口需要 30 秒。' };
   run = current;
   let stage = '接入标签页声音';
@@ -154,23 +149,37 @@ async function start(message) {
       channelFactory: () => current.channel });
     const store = new CueStore({ maxCues: 600 });
     current.queue = new TranslationQueue(store, async (cue, context, signal) => {
-      const response = await fetch(`${service}/api/translate`, { method: 'POST', credentials: 'omit', redirect: 'error', cache: 'no-store',
-        signal, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${current.token}` }, body: JSON.stringify({ cue, context }) });
-      const value = await response.json();
-      if (!response.ok) {
-        current.message = response.status === 401 ? '本机配对失效，请在扩展设置重新配对。' : '本轮中文翻译失败，采集继续。';
-        report(current); throw Error('translation-unavailable');
+      try {
+        const value = await extensionRequest('translate', { cue, context }, { signal });
+        current.translationError = ''; return value;
+      } catch (error) {
+        if (error.code !== 'CANCELLED') {
+          current.translationError = error.code || 'TRANSLATION_FAILED';
+          current.message = '已识别出文字，但中文翻译失败；请检查扩展设置和网络。'; report(current);
+        }
+        throw error;
       }
-      return value;
     }, { concurrency: 2, maxPending: 120, contextWaitMs: 0,
       onReady: cue => {
         if (run !== current || current.stopping) return;
         current.relay.publish([{ ...cue, start: cue.start + current.origin, end: cue.end + current.origin }]);
+        report(current);
       } });
-    const transcribe = createAsrRequester(asrFetch, { service, getToken: () => current.token });
+    const transcribe = async (payload, signal, onCue) => {
+      current.asrWindows++; current.asrStage = 'connecting'; report(current);
+      try {
+        const result = await extensionRequest('asr', payload, { signal, onCue,
+          onProgress: value => { current.asrStage = value.stage; current.recognitionElapsedSeconds = value.elapsedMs / 1000; report(current); } });
+        current.asrError = ''; current.asrStage = result.cues.length ? 'complete' : 'no-speech';
+        return result;
+      } catch (error) {
+        if (error.code !== 'CANCELLED') { current.asrError = error.code || 'ASR_FAILED'; current.asrStage = 'error'; }
+        throw error;
+      }
+    };
     current.source = new TabAudioSource({
-      transcribe: (...args) => { current.asrWindows++; report(current); return transcribe(...args); },
-      onCues: cues => current.queue.ingestMany(cues),
+      transcribe,
+      onCues: cues => { current.recognizedCues += cues.length; current.queue.ingestMany(cues); report(current); },
       onReset: () => current.queue.reset(),
       onStatus: status => {
         if (status.message) current.message = status.message;
@@ -248,7 +257,7 @@ async function dispose(current) {
   current.stopping = true;
   if (run === current) run = null;
   clearInterval(current.timer); current.source?.stop(); current.queue?.dispose(); current.relay?.close();
-  current.pcm.length = 0; current.clocks.length = 0; current.token = '';
+  current.pcm.length = 0; current.clocks.length = 0;
   if (current.processor) current.processor.port.onmessage = null;
   try { current.input?.disconnect(); current.processor?.disconnect(); } catch {}
   current.stream?.getTracks().forEach(track => track.stop());

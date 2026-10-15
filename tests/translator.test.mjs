@@ -1,11 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import http from 'node:http';
 import { createTranslator, readConfig } from '../lib/translator.mjs';
-import { createServer } from '../server.mjs';
 import { TRANSLATION_PROMPT, TR_ASR_PROMPT } from '../lib/translation-prompt.mjs';
 
 const input = { cue: { id: 'cue-1', text: 'The gap is now 1.8 seconds.', start: 10, end: 14 }, context: [{ text: 'Norris is closing in.' }] };
@@ -163,54 +158,4 @@ test('configuration defaults to mock and rejects missing credentials or insecure
   assert.throws(() => readConfig({ TRANSLATION_MODE: 'api' }), { code: 'INVALID_CONFIG' });
   assert.throws(() => readConfig({ TRANSLATION_MODE: 'api', API_ENDPOINT: 'http://remote.example/api', API_MODEL: 'test', API_KEY: 'secret' }), { code: 'INVALID_CONFIG' });
   assert.equal(readConfig({ TRANSLATION_MODE: 'api', API_ENDPOINT: 'http://127.0.0.1:8000/v1/chat/completions', API_MODEL: 'test', API_KEY: 'local' }).mode, 'api');
-});
-
-test('local API authenticates session and GM requests, isolates files, serves seek ranges, limits concurrency', async t => {
-  const root = await mkdtemp(join(tmpdir(), 'f1tv-zh-test-'));
-  await mkdir(join(root, 'demo'));
-  await mkdir(join(root, 'app'));
-  await mkdir(join(root, 'src'));
-  await writeFile(join(root, 'demo', 'index.html'), '<title>demo</title>');
-  await writeFile(join(root, 'app', 'index.html'), '<title>home</title>');
-  await writeFile(join(root, 'demo', 'test.webm'), '0123456789');
-  await writeFile(join(root, '.env'), 'API_KEY=do-not-expose');
-  await writeFile(join(root, 'src', '.env'), 'API_KEY=do-not-expose');
-  const server = createServer({ rootDir: root, translator: createTranslator({ mode: 'mock' }), maxConcurrent: 1 });
-  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-  t.after(async () => { await new Promise(resolve => server.close(resolve)); await rm(root, { recursive: true, force: true }); });
-  const base = `http://127.0.0.1:${server.address().port}`;
-  assert.equal((await fetch(base)).status, 200);
-  for (const path of ['/.env', '/src/.env', '/server.mjs', '/lib/translator.mjs', '/demo/%2e%2e%5c.env']) {
-    const response = await fetch(base + path);
-    assert.equal(response.status, 404, path);
-    assert.equal((await response.text()).includes('do-not-expose'), false);
-  }
-  assert.equal((await fetch(base + '/api/session')).status, 403);
-  assert.equal((await fetch(base + '/api/session', { headers: { Origin: 'https://evil.example', 'Sec-Fetch-Site': 'cross-site' } })).status, 403);
-  const badHostStatus = await new Promise((resolve, reject) => {
-    http.get(base, { headers: { Host: 'attacker.example' } }, response => { response.resume(); resolve(response.statusCode); }).on('error', reject);
-  });
-  assert.equal(badHostStatus, 403);
-  const session = await (await fetch(base + '/api/session', { headers: { 'Sec-Fetch-Site': 'same-origin' } })).json();
-  assert.match(session.token, /^[a-f0-9]{64}$/);
-  assert.equal(session.mode, 'mock');
-  const options = { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.token}` }, body: JSON.stringify({ ...input, mockDelayMs: 0 }) };
-  assert.equal((await fetch(base + '/api/translate', { ...options, headers: { 'Content-Type': 'application/json' } })).status, 401);
-  assert.equal((await fetch(base + '/api/translate', { ...options, headers: { ...options.headers, Origin: 'https://evil.example' } })).status, 401);
-  const f1Headers = { 'Content-Type': 'application/json', Origin: 'https://f1tv.formula1.com', 'Sec-Fetch-Site': 'cross-site' };
-  assert.equal((await fetch(base + '/api/translate', { ...options, headers: f1Headers })).status, 401);
-  assert.equal((await fetch(base + '/api/translate', { ...options, headers: { ...f1Headers, Authorization: options.headers.Authorization } })).status, 200);
-  const result = await fetch(base + '/api/translate', options);
-  assert.equal(result.headers.get('Access-Control-Allow-Origin'), null);
-  assert.deepEqual(await result.json(), { text: '目前差距是 1.8 秒。' });
-  const range = await fetch(base + '/demo/test.webm', { headers: { Range: 'bytes=3-6' } });
-  assert.equal(range.status, 206);
-  assert.equal(range.headers.get('Content-Range'), 'bytes 3-6/10');
-  assert.equal(await range.text(), '3456');
-  assert.equal((await fetch(base + '/demo/test.webm', { headers: { Range: 'bytes=20-' } })).status, 416);
-  const first = fetch(base + '/api/translate', { ...options, body: JSON.stringify({ ...input, mockDelayMs: 150 }) });
-  // The first request is held in the mock translator; the second must fail quickly.
-  await new Promise(resolve => setTimeout(resolve, 30));
-  assert.equal((await fetch(base + '/api/translate', options)).status, 429);
-  assert.equal((await first).status, 200);
 });

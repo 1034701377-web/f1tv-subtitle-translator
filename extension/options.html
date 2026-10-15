@@ -3,26 +3,76 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>声音采集 · 本机配对</title>
+  <title>F1 TV 中文字幕 · 设置</title>
   <link rel="stylesheet" href="options.css">
 </head>
 <body>
   <main>
-    <header><p class="eyebrow">F1 TV 中文 · 声音采集</p><h1>配对本机服务</h1><p class="intro">让采集扩展连接这台电脑上的翻译服务。</p></header>
-    <section class="card" aria-labelledby="pair-title">
-      <h2 id="pair-title">输入配对码</h2>
-      <p>打开<a href="http://127.0.0.1:3847/" target="_blank" rel="noopener noreferrer">本机配置页</a>，复制配对码后粘贴到这里。这里不需要 API 密钥。</p>
-      <form id="pair">
-        <label for="token">本机配对码</label>
-        <input id="token" type="password" autocomplete="off" spellcheck="false" maxlength="64" required placeholder="粘贴本机配置页的配对码" aria-describedby="pair-help">
-        <p id="pair-help" class="hint">配对保留到本次浏览器会话结束。浏览器或服务重启后，请重新配对。</p>
-        <button id="save" type="submit">保存配对</button>
-      </form>
-      <p id="status" role="status" aria-live="polite"></p>
+    <header>
+      <p class="eyebrow"><span class="brand-mark" aria-hidden="true">中</span> F1 TV 中文字幕</p>
+      <h1>设置好，回到比赛。</h1>
+      <p class="intro">配置翻译服务后，在 F1 TV 网页开启中文字幕。声音采集按需开启。</p>
+    </header>
+    <form id="settings-form" novalidate>
+      <details class="advanced">
+        <summary>从旧版迁移 <span>本地导入原 API 配置</span></summary>
+        <div class="advanced-content">
+          <label for="legacy-config">选择旧版 .env 文件</label>
+          <input id="legacy-config" type="file" accept=".env,text/plain" disabled>
+          <p class="hint">文件只在此浏览器中读取，不会上传。导入后检查配置并点击“保存设置”；确认成功后可删除旧 .env。</p>
+        </div>
+      </details>
+      <section class="settings-section" aria-labelledby="translation-title">
+        <div class="section-heading"><div><p class="step">01 · 必需</p><h2 id="translation-title">字幕翻译</h2></div><span id="translation-state" class="saved-state">读取设置…</span></div>
+        <p class="section-description">将官方解说字幕翻译成中文，默认使用 DeepSeek。</p>
+        <label for="translation-key">API 密钥</label>
+        <input id="translation-key" name="translation-key" type="password" autocomplete="new-password" spellcheck="false" placeholder="填写翻译服务的 API 密钥" aria-describedby="translation-key-help" disabled>
+        <p id="translation-key-help" class="hint">密钥只需填写一次；之后留空即可保留。</p>
+        <details id="translation-advanced" class="advanced">
+          <summary>高级设置 <span>接口、模型与思考模式</span></summary>
+          <div class="advanced-content">
+            <label for="translation-endpoint">翻译接口地址</label>
+            <input id="translation-endpoint" type="url" spellcheck="false" autocomplete="off" placeholder="https://api.deepseek.com/chat/completions" disabled>
+            <p class="hint">填写完整的兼容 Chat Completions 的 HTTPS 地址。</p>
+            <div class="field-grid">
+              <div><label for="translation-model">模型</label><input id="translation-model" type="text" spellcheck="false" autocomplete="off" placeholder="deepseek-flash" disabled></div>
+              <div><label for="translation-thinking">思考模式</label><select id="translation-thinking" disabled><option value="disabled">关闭</option><option value="enabled">开启</option><option value="">服务默认（不传参数）</option></select></div>
+            </div>
+          </div>
+        </details>
+      </section>
+      <section class="settings-section" aria-labelledby="asr-title">
+        <div class="section-heading"><div><p class="step">02 · 可选</p><h2 id="asr-title">TR / 采访语音识别</h2></div><span id="asr-state" class="saved-state">默认关闭</span></div>
+        <p class="section-description">需要车队无线电与采访字幕时配置。普通录播在网页开启 TR；直播和回放模拟在采集页开启“采集声音”。</p>
+        <label class="opt-in" for="asr-enabled"><span><strong>启用语音识别服务</strong><small>不会自动开始声音采集</small></span><input id="asr-enabled" type="checkbox" role="switch" disabled><span class="switch-track" aria-hidden="true"></span></label>
+        <div id="asr-fields" hidden>
+          <label for="asr-key">语音识别 API 密钥</label>
+          <input id="asr-key" type="password" autocomplete="new-password" spellcheck="false" placeholder="填写语音识别服务的 API 密钥" aria-describedby="asr-key-help" disabled>
+          <p id="asr-key-help" class="hint">启用服务不会自动采集；音频在你开启 TR 或声音采集后发送。</p>
+          <details id="asr-advanced" class="advanced">
+            <summary>识别服务设置 <span>完整连接地址与模型</span></summary>
+            <div class="advanced-content">
+              <label for="asr-endpoint">实时识别连接地址</label>
+              <input id="asr-endpoint" type="url" spellcheck="false" autocomplete="off" placeholder="填写服务商提供的完整 wss:// 地址" disabled>
+              <p class="hint">填写服务商提供的完整 WebSocket 地址，包含所需工作空间路径。</p>
+              <label for="asr-model">识别模型</label>
+              <input id="asr-model" type="text" spellcheck="false" autocomplete="off" placeholder="qwen-audio-3.1-asr-flash-streaming" disabled>
+            </div>
+          </details>
+          <p class="hint asr-note">此页保存识别配置；实际连接、音频输入和识别结果在采集弹窗确认。</p>
+        </div>
+      </section>
+      <div class="actions"><button id="save" class="primary-button" type="submit" disabled>保存设置</button><span id="save-hint">读取设置后即可编辑</span></div>
+      <p id="status" class="feedback" role="status" aria-live="polite"></p>
+    </form>
+    <section class="test-section" aria-labelledby="test-title">
+      <div><h2 id="test-title">确认翻译连接</h2><p>检测会使用已保存的配置发送一条短文本，可能产生少量 API 费用。</p></div>
+      <button id="test-translation" class="secondary-button" type="button" disabled>检测翻译连接</button>
+      <p id="test-status" class="feedback" role="status" aria-live="polite">保存配置不代表 API 已连接成功。</p>
     </section>
-    <section class="next-step" aria-labelledby="next-title"><h2 id="next-title">配对后怎么用</h2><ol><li>在采集页准备 Track FX 并播放。</li><li>点击扩展图标，打开“采集声音”开关。</li></ol><p>重新配对会停止当前采集并恢复声音；保存配对不会自动开始采集。</p></section>
-    <footer><span>关闭扩展面板不会停止采集</span><span>v0.9.1</span></footer>
+    <aside class="privacy"><h2>数据如何使用</h2><p>API 密钥由本扩展保存在当前浏览器本地，不会上传给扩展开发者。翻译时，字幕文本会发送给你配置的翻译服务商；开启 TR 音轨识别或声音采集后，音频会发送给你配置的语音识别服务商。</p></aside>
+    <footer><span>字幕与样式在网页控制台 · 采集开关在扩展弹窗</span><span id="version"></span></footer>
   </main>
-  <script src="options.js"></script>
+  <script type="module" src="options.js"></script>
 </body>
 </html>

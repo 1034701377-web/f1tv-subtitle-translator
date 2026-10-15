@@ -9,7 +9,7 @@ const programmeUrl = `${origin}/detail/1000010360/qualifying?f1zh-replay=1&f1zh-
 const [pageBridge, contentBridge, userscript] = await Promise.all([
   readFile(new URL('../src/extension-bridge.js', import.meta.url), 'utf8'),
   readFile(new URL('../extension/bridge.js', import.meta.url), 'utf8'),
-  readFile(new URL('../src/userscript-entry.js', import.meta.url), 'utf8'),
+  readFile(new URL('../src/page-entry.js', import.meta.url), 'utf8'),
 ]);
 // Execute the actual snapshot/response wiring without instantiating the whole
 // console/player UI. These boundaries select source; they do not assert its text.
@@ -45,7 +45,7 @@ function fixture({ granted = true, sendBackground } = {}) {
   } : page;
   const emit = event => { for (const listener of [...listeners]) listener(event); };
   const scriptContext = vm.createContext({ window: sandbox, ...(granted ? { unsafeWindow: page } : {}),
-    collectorMode: true, enabled: false, status: { textContent: '初始提示' }, radioStatus: { textContent: '' },
+    bootstrap:{version:'0.10.0'}, providerHealth:{}, collectorMode: true, enabled: false, status: { textContent: '初始提示' }, radioStatus: { textContent: '' },
     extensionBridgeIssue: null, refreshControls() {},
     collectorSnapshot: async () => structuredClone(clock),
   });
@@ -57,7 +57,7 @@ function fixture({ granted = true, sendBackground } = {}) {
     onMessage: { addListener(listener) { messageListener = listener; } },
     sendMessage(message) { if (sendBackground) return sendBackground(message); throw Error('Unexpected background action'); },
   } };
-  const installContent = () => vm.runInNewContext(contentBridge, {
+  const installContent = () => vm.runInNewContext(contentBridge.replace(/^import .*;\r?\n/gm, ''), {
     window: page, chrome, crypto: { randomUUID: () => `request-${++requestId}` },
     setTimeout(callback) { const id = ++timerId; timers.set(id, callback); return id; },
     clearTimeout(id) { timers.delete(id); },
@@ -134,7 +134,7 @@ test('a rejected real SDK read uses the actual failure handler and preserves pro
   };
   Object.assign(f.scriptContext, { pageWindow: { document: { querySelector: () => view } },
     location: { href: programmeUrl }, replaySimulation: true, capturePageInfo });
-  // This is collectorSnapshot from userscript-entry.js, not a hand-copied
+  // This is collectorSnapshot from page-entry.js, not a hand-copied
   // failure response. Its rejection must flow through the real registered handler.
   vm.runInContext(realSnapshot, f.scriptContext);
   f.installContent();
@@ -145,7 +145,7 @@ test('a rejected real SDK read uses the actual failure handler and preserves pro
   assert.equal(response.collector, true);
   assert.equal(response.pageLabel, '采集页');
   assert.equal(response.problem, null);
-  assert.match(response.startProblem, /脚本已连接.*未能读取官网播放器状态/);
+  assert.match(response.startProblem, /网页已连接.*未能读取官网播放器状态/);
   assert.doesNotMatch(JSON.stringify(response), /private|media\.invalid|token/);
   assert.equal(f.timers.size, 0);
 });

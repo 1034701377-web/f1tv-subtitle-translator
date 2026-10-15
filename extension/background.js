@@ -1,4 +1,9 @@
 import { validCaptureSnapshot } from '../src/capture-protocol.js';
+import { publicSettings, saveSettings } from './settings-store.js';
+import { translateDirect } from './model-services.js';
+import { installApiRouter, providerHealth, safeApiError } from './api-router.js';
+
+installApiRouter({ ensureOffscreen });
 
 const site = 'https://f1tv.formula1.com';
 const offscreenUrl = chrome.runtime.getURL('offscreen.html');
@@ -11,8 +16,8 @@ const offscreen = message => chrome.runtime.sendMessage({ to: 'offscreen', ...me
 const userError = message => Object.assign(Error(message), { userMessage: true });
 async function ensureOffscreen() {
   if ((await chrome.runtime.getContexts({ contextTypes: ['OFFSCREEN_DOCUMENT'], documentUrls: [offscreenUrl] })).length) return;
-  creating ||= chrome.offscreen.createDocument({ url: 'offscreen.html', reasons: ['USER_MEDIA'],
-    justification: 'Process explicitly selected tab audio without replaying it through the speakers.' });
+  creating ||= chrome.offscreen.createDocument({ url: 'offscreen.html', reasons: ['USER_MEDIA', 'BLOBS'],
+    justification: 'Process opted-in tab audio and send PCM audio blobs to the configured speech service.' });
   try { await creating; } finally { creating = null; }
 }
 async function show(tabId, value) {
@@ -45,11 +50,13 @@ async function panelState(tabId) {
   const supported = isSite(tab?.url);
   const targetId = capture?.tabId ?? tabId;
   const snapshot = (capture || supported) ? await sendTab(targetId, { type: 'snapshot' }).catch(() => null) : null;
-  const values = await chrome.storage.session.get(['token', `status:${targetId}`]);
+  const values = await chrome.storage.session.get(`status:${targetId}`);
+  const config = await publicSettings();
   const problem = !supported && !capture ? '请在 F1 TV 页面打开面板。'
-    : !snapshot || snapshot.protocol !== 1 ? '请更新油猴脚本并刷新本页。'
-    : snapshot.startProblem || (!validCaptureSnapshot(snapshot) ? '等待脚本提供节目时间。' : null);
-  return { paired: Boolean(values.token), supported, active: Boolean(capture), busy: starting || Boolean(stopping),
+    : !snapshot || snapshot.protocol !== 1 || snapshot.client !== 'extension' ? '请停用旧油猴脚本，并刷新 F1 TV 页面以连接新版扩展。'
+    : snapshot.startProblem || (!validCaptureSnapshot(snapshot) ? '等待官方节目时间。' : null);
+  return { configured: config.translation.configured, asrConfigured: config.asr.enabled && config.asr.configured,
+    supported, active: Boolean(capture), busy: starting || Boolean(stopping),
     elsewhere: Boolean(capture && capture.tabId !== tabId), tabTitle: tab?.title || '当前标签页',
     captureTitle: capture?.title || '', pageLabel: snapshot?.pageLabel || '', audioLabel: snapshot?.audioLabel || '',
     programmeTime: snapshot?.time ?? null, problem, status: values[`status:${targetId}`] || {} };
@@ -62,12 +69,12 @@ async function startCapture(tabId) {
     if (await current()) return { ok: false, message: '已有标签页正在采集，请先关闭采集开关。' };
     const tab = await chrome.tabs.get(tabId);
     if (!tab.active || !isSite(tab.url)) throw userError('请在要采集的 F1 TV 标签页打开面板。');
-    const { token } = await chrome.storage.session.get('token');
-    if (!token) throw userError('请先打开配对设置，保存本机配对令牌。');
+    const config = await publicSettings();
+    if (!config.translation.configured || !config.asr.enabled || !config.asr.configured) throw userError('请先在扩展设置中配置翻译和声音识别。');
     const snapshot = await sendTab(tab.id, { type: 'snapshot' }).catch(() => null);
-    if (snapshot?.protocol !== 1) throw userError('请更新油猴脚本并刷新本页。');
+    if (snapshot?.protocol !== 1 || snapshot.client !== 'extension') throw userError('请停用旧油猴脚本，并刷新 F1 TV 页面。');
     if (snapshot.startProblem) throw userError(snapshot.startProblem);
-    if (!validCaptureSnapshot(snapshot)) throw userError('等待脚本提供有效的节目时间。');
+    if (!validCaptureSnapshot(snapshot)) throw userError('等待官方播放器提供有效的节目时间。');
     capture = { id: crypto.randomUUID(), tabId: tab.id, title: tab.title || 'F1 TV',
       programmeId: snapshot.programmeId, capturing: false };
     await chrome.storage.session.set({ capture });
@@ -80,7 +87,7 @@ async function startCapture(tabId) {
     if ((await current())?.id !== capture.id) return { ok: false };
     capture.capturing = true;
     await chrome.storage.session.set({ capture });
-    const result = await offscreen({ type: 'start', capture, streamId, token, snapshot });
+    const result = await offscreen({ type: 'start', capture, streamId, snapshot });
     if (!result?.ok) throw userError(result?.message || '未能接入声音，请关闭后重试。');
     if ((await current())?.id !== capture.id || stopping) {
       await stopping; await offscreen({ type: 'stop', id: capture.id }); return { ok: false };
@@ -89,7 +96,7 @@ async function startCapture(tabId) {
     await chrome.tabs.update(tab.id, { muted: false });
     return { ok: true };
   } catch (error) {
-    const message = error?.userMessage ? error.message : '未能连接采集页，请刷新页面并检查配对。';
+    const message = error?.userMessage ? error.message : '未能连接采集页，请刷新页面并检查扩展设置。';
     if (capture?.id && (await current())?.id === capture.id) await stopCapture(message, 'error');
     else await show(tabId, { active: false, state: 'error', message });
     return { ok: false, message };
@@ -103,6 +110,24 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
   const fromOptions = sender.url === chrome.runtime.getURL('options.html');
   if (!fromPage && !fromOffscreen && !fromPopup && !fromOptions) return;
   const run = async () => {
+    if (fromOptions && message.type === 'get-config') return publicSettings();
+    if (fromOptions && message.type === 'save-config') {
+      if (await current()) return { ok: false, code: 'CONFIG_BUSY', message: '请先关闭声音采集，再修改模型配置。' };
+      try {
+        const config = await saveSettings(message.config);
+        const health = await providerHealth();
+        const tabs = await chrome.tabs.query({ url: `${site}/*` });
+        await Promise.allSettled(tabs.map(tab => sendTab(tab.id, { type: 'config-changed', health })));
+        return { ok: true, config };
+      } catch (error) { return { ok: false, ...safeApiError(error) }; }
+    }
+    if (fromOptions && message.type === 'test-translation') {
+      const began = performance.now();
+      try {
+        const value = await translateDirect({ cue: { id: 'settings-test', text: 'Box this lap.', start: 0, end: 3 }, context: [] });
+        return { ok: true, text: value.text, elapsedMs: Math.round(performance.now() - began) };
+      } catch (error) { return { ok: false, ...safeApiError(error) }; }
+    }
     if (fromPopup && message.type === 'panel-state' && Number.isInteger(message.tabId)) return panelState(message.tabId);
     if (fromPopup && message.type === 'start' && Number.isInteger(message.tabId)) return startCapture(message.tabId);
     const capture = await current();

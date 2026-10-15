@@ -1,9 +1,7 @@
 .env
 .env.*
-!.env.example
 node_modules/
-dist/*
-!dist/f1tv-zh.user.js
+dist/
 local/
 release/
 *.log

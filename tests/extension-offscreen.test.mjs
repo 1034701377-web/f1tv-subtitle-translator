@@ -5,7 +5,6 @@ import vm from 'node:vm';
 import { performance } from 'node:perf_hooks';
 import { CueStore, TranslationQueue } from '../src/core.js';
 import { TabAudioSource } from '../src/tab-audio-source.js';
-import { createAsrRequester } from '../src/asr-client.js';
 import { ProgrammeRelay } from '../src/programme-relay.js';
 import { validCaptureSnapshot } from '../src/capture-protocol.js';
 
@@ -92,7 +91,9 @@ function fixture(t, { rejectMediaOnce = false, rejectWorkletOnce = false, contro
   } };
   const sandbox = vm.createContext({ chrome, navigator, AudioContext, AudioWorkletNode,
     performance: controlled ? { timeOrigin: epoch, now: () => elapsed } : performance,
-    CueStore, TranslationQueue, TabAudioSource: ObservedSource, createAsrRequester, ProgrammeRelay, validCaptureSnapshot,
+    CueStore, TranslationQueue, TabAudioSource: ObservedSource, ProgrammeRelay, validCaptureSnapshot,
+    extensionRequest() { networkCalls++; throw Error('This clock test must not call a model'); },
+    installWebSocketHost() {},
     ...timerApi, AbortController,
     fetch() { networkCalls++; throw Error('This test must not call a network transport'); },
   });

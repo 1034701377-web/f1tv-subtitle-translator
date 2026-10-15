@@ -18,7 +18,7 @@ export function extensionSnapshotFailure(collector) {
   // The script did respond: do not let an SDK read failure masquerade as an
   // absent/outdated script. Never expose SDK exceptions or media URLs.
   return { protocol: 1, collector, pageLabel: collector ? '采集页' : '观看页', problem: null,
-    startProblem: '脚本已连接，但未能读取官网播放器状态。请等待播放器加载完成后重试。' };
+    startProblem: '网页已连接，但未能读取官网播放器状态。请等待播放器加载完成后重试。' };
 }
 export function createExtensionRelayChannel(programmeId) {
   const channel = { onmessage: null, postMessage(packet) { postExtensionMessage({ type: 'relay', packet }); }, close: null };

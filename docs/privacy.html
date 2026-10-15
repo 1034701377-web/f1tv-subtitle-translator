@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="F1 TV 中文字幕扩展的隐私政策：本地 API 配置、音频与字幕处理及用户控制。">
+  <title>隐私政策 · F1 TV 中文字幕（非官方）</title>
+  <style>
+    :root{color-scheme:light dark;font:16px/1.75 system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif}
+    body{margin:0;background:#f5f6f8;color:#18202d}main{max-width:880px;margin:0 auto;padding:40px 24px 64px}
+    h1{font-size:2rem;line-height:1.3;margin:0 0 12px}h2{font-size:1.25rem;margin:32px 0 10px}
+    p,ul{margin:12px 0}li{margin:6px 0}a{color:#1857b6;text-underline-offset:3px}
+    .meta{color:#526172}.notice{padding:16px 20px;background:#fff;border:1px solid #d8dee7;border-radius:10px}
+    table{border-collapse:collapse;width:100%;font-size:.95rem}th,td{padding:12px;text-align:left;vertical-align:top;border:1px solid #d8dee7}th{background:#eaf0f6}
+    .table-wrap{overflow-x:auto}code{overflow-wrap:anywhere}footer{border-top:1px solid #d8dee7;margin-top:36px;padding-top:16px;color:#526172}
+    @media(prefers-color-scheme:dark){body{background:#111722;color:#e5eaf2}.meta,footer{color:#b5c1d2}.notice{background:#192232;border-color:#37455b}th,td{border-color:#37455b}th{background:#202e42}a{color:#94bcff}footer{border-color:#37455b}}
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>隐私政策</h1>
+    <p class="meta">F1 TV 中文字幕（非官方） · 适用版本：0.10.0 · 更新日期：2026 年 10 月 16 日</p>
+  </header>
+  <p class="notice">本扩展使用你自己的 API 密钥，在浏览器中直接连接你配置的翻译和语音识别服务。项目开发者不提供字幕或音频的中转服务器。本项目与 Formula 1 / F1 TV 无隶属关系。</p>
+
+  <h2>1. 处理范围与用途</h2>
+  <p>扩展用于在 F1 TV 播放页显示简体中文字幕。它读取本节目的字幕、节目标识、播放位置及必要音轨信息，用于翻译、识别、去重、跨页对应及按节目时间显示字幕。它不以广告、数据出售或跨网站跟踪为目的处理这些信息。</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th scope="col">功能</th><th scope="col">发送的数据</th><th scope="col">接收方</th></tr></thead>
+    <tbody>
+      <tr><td>官方解说翻译</td><td>官方字幕、必要的相邻上下文与翻译配置</td><td>你配置的翻译服务，默认 DeepSeek</td></tr>
+      <tr><td>TR / 采访识别</td><td>相关 Track FX 音轨或采集标签页的音频片段及识别配置</td><td>你配置的 Qwen ASR 服务</td></tr>
+      <tr><td>TR / 采访翻译</td><td>识别文字、必要上下文与翻译配置</td><td>你配置的翻译服务</td></tr>
+    </tbody>
+  </table></div>
+  <p>API 密钥作为认证信息发送给对应服务商。你若指定其他兼容翻译服务，该服务也会成为所提交字幕和认证信息的接收方。请只填写可信的服务地址。</p>
+
+  <h2>2. 本地配置与运行数据</h2>
+  <p>API 密钥及扩展设置保存在当前 Chrome 用户配置的扩展本地存储（chrome.storage.local），不使用 chrome.storage.sync，也不通过浏览器同步到其他设备。该存储仅向可信扩展上下文开放，网页和内容脚本不直接读取密钥；本地保存不代表独立加密保险库。</p>
+  <p>运行期间，扩展会处理音频片段、识别文字和字幕缓存，以完成识别、翻译及按节目时间回看。扩展不提供向项目开发者服务器上传这些内容的功能。迁移时可由你主动选择旧 .env 文件，在浏览器内读取 API 配置，再确认保存；文件本身不会上传。旧版本的本机服务和 .env 文件不参与新版扩展运行。</p>
+
+  <h2>3. 第三方处理与传输</h2>
+  <p>模型请求通过 HTTPS / WSS 发送给你选择的服务商。Qwen WebSocket 的认证规则只用于本扩展发起、且匹配已配置确切识别接口的请求，不用于给其他网页请求添加密钥。</p>
+  <p>第三方是否保留请求、保存多久、是否用于训练及如何申请删除，受对应服务商条款、隐私政策、地域和你的账号设置约束。本项目不替第三方承诺特定保存期限或“不用于训练”。使用前请查阅自己所用服务及账号的政策。</p>
+  <p>开发者不出售这些用户数据，也不将其用于个性化广告或信用评估。对用户数据的使用仅限本政策所述字幕功能及其必要运行，并遵守 <a href="https://developer.chrome.com/docs/webstore/program-policies/limited-use">Chrome Web Store 用户数据政策中的 Limited Use 要求</a>。</p>
+
+  <h2>4. 你的选择与控制</h2>
+  <ul>
+    <li>仅翻译官方解说时，不必启用或配置 TR 语音识别。</li>
+    <li>录播的独立 Track FX 音轨识别由你在页面中开启；直播和双页录播模拟须在采集页明确开启“采集声音”。</li>
+    <li>关闭字幕显示、收起页面控制台或关闭扩展弹窗，不会停止已经开始的声音采集。请明确关闭“采集声音”以停止后续采集；这不能撤回已发送给服务商的数据。</li>
+    <li>你可以在扩展设置中更换配置。删除扩展会移除其浏览器本地配置；如需撤销密钥或处理服务商已保存的数据，请到对应服务商的账户或支持入口操作。</li>
+    <li>如果不希望页面继续运行扩展功能，可在 Chrome 扩展管理中禁用或移除扩展，并刷新已打开的 F1 TV 页面。</li>
+  </ul>
+
+  <h2>5. 安全反馈与政策更新</h2>
+  <p>分享反馈时，请移除密钥、完整配置、认证资源地址和个人账号信息。若密钥泄露，请到服务商撤销密钥并配置新值。</p>
+  <p>普通问题可通过 <a href="https://github.com/1034701377-web/f1tv-subtitle-translator/issues">项目问题反馈页</a>联系维护者。安全漏洞或涉及个人数据的问题，请先提交不含敏感细节的说明以索取私下联系方式，不要公开凭据或可利用漏洞细节。代码与安全说明见 <a href="https://github.com/1034701377-web/f1tv-subtitle-translator">项目仓库</a>。</p>
+  <p>如果后续版本改变数据处理方式，本政策及扩展内说明会相应更新。请以所安装版本及政策所示更新时间为准。</p>
+  <footer>F1 TV 中文字幕 · 开源非官方工具。本页面无脚本、外部字体或分析统计代码。</footer>
+</main>
+</body>
+</html>

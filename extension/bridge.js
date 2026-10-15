@@ -1,8 +1,11 @@
-// Page messages contain only clocks, control state and finalized subtitles.
-// No audio, stream ID or pairing token is exposed to the website/userscript.
+import { extensionRequest } from './rpc-client.js';
+
+// Only bounded application operations cross into the extension. Configuration
+// secrets and arbitrary URLs never cross this page boundary.
 (() => {
   const origin = 'https://f1tv.formula1.com';
   const pending = new Map();
+  const requests = new Map();
   const post = message => window.postMessage({ f1zhExtension: 1, ...message }, origin);
   let invalidated = false, lastNotice = null;
   const unavailable = reason => {
@@ -35,6 +38,22 @@
   window.addEventListener('message', event => {
     if (event.source !== window || event.origin !== origin || event.data?.f1zhPage !== 1) return;
     const message = event.data;
+    if (message.type === 'api-cancel') { requests.get(message.id)?.abort(); return; }
+    if (message.type === 'api-request') {
+      if (typeof message.id !== 'string' || message.id.length > 80 || requests.has(message.id)
+          || !['bootstrap', 'health', 'translate', 'asr', 'preference', 'open-settings'].includes(message.method)) return;
+      if (requests.size >= 8 || JSON.stringify(message).length > 1400000) {
+        post({ type: 'api-response', id: message.id, error: { code: 'BUSY' } }); return;
+      }
+      const controller = new AbortController(); requests.set(message.id, controller);
+      void extensionRequest(message.method, message.payload, { signal: controller.signal,
+        onCue: cue => post({ type: 'api-response', id: message.id, kind: 'cue', cue }),
+        onProgress: diagnostics => post({ type: 'api-response', id: message.id, kind: 'progress', diagnostics })
+      }).then(value => post({ type: 'api-response', id: message.id, value }),
+        error => post({ type: 'api-response', id: message.id, error: { code: error.code || 'EXTENSION_DISCONNECTED', diagnostics: error.diagnostics } }))
+        .finally(() => requests.delete(message.id));
+      return;
+    }
     if (message.type === 'snapshot' && pending.has(message.requestId)) {
       const resolve = pending.get(message.requestId); pending.delete(message.requestId);
       resolve(message.snapshot); return;
@@ -59,6 +78,11 @@
     }
     if (message.type === 'relay') post(message);
     if (message.type === 'status') post(message);
+    if (message.type === 'config-changed') post(message);
+  });
+  window.addEventListener('pagehide', () => {
+    for (const controller of requests.values()) controller.abort();
+    requests.clear();
   });
   if (runtimeReady()) post({ type: 'installed' });
 })();

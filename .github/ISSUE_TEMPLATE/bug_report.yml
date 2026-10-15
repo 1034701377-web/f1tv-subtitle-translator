@@ -1,15 +1,15 @@
 name: 使用问题
-description: 报告启动、配对、字幕或声音采集问题
+description: 报告扩展设置、字幕或声音采集问题
 title: "[问题] "
 body:
   - type: markdown
     attributes:
-      value: 请不要上传 .env、API 密钥、配对码或浏览器 Cookie。截图前遮住这些信息。
+      value: 请不要上传 API 密钥、完整配置或浏览器 Cookie。截图前遮住这些信息。
   - type: input
     id: version
     attributes:
-      label: 系统版本
-      placeholder: 例如 0.9.1，使用 Windows 便携包
+      label: 扩展版本
+      placeholder: 例如 0.10.0
     validations:
       required: true
   - type: input
@@ -24,8 +24,8 @@ body:
     attributes:
       label: 出现问题的地方
       options:
-        - 启动或本机配置页
-        - 安装或配对
+        - 扩展设置或 API 连接
+        - 安装或更新
         - 官方解说字幕
         - TR 声音采集或翻译
         - 字幕显示时间

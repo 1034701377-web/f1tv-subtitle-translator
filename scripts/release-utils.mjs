@@ -1,9 +1,8 @@
 import { access, copyFile, lstat, mkdir, readdir, realpath, writeFile } from 'node:fs/promises';
-import { createHash, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
-export const sha256 = data => createHash('sha256').update(data).digest('hex');
 export const sourceRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 export function powershell(script, environment = {}) {

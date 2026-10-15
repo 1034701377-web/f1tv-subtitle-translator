@@ -6,7 +6,7 @@ Chinese subtitles for F1 TV / F1TV: translate official commentary captions and t
 
 **0.10.1 已整合为纯 Chrome 扩展，尚未在扩展商店发布。** 使用自己的 API 密钥，由浏览器直接连接翻译及语音识别服务；无需篡改猴、Node.js、本机服务或配对码。
 
-**[下载 Chrome 扩展 v0.10.1](https://github.com/1034701377-web/f1tv-subtitle-translator/releases/download/v0.10.1/F1TV-ZH-Chrome-v0.10.1.zip)** · [版本说明与校验文件](https://github.com/1034701377-web/f1tv-subtitle-translator/releases/tag/v0.10.1)
+**[下载 Chrome 扩展 v0.10.1](https://github.com/1034701377-web/f1tv-subtitle-translator/releases/download/v0.10.1/F1TV-ZH-Chrome-v0.10.1.zip)** · [版本说明](https://github.com/1034701377-web/f1tv-subtitle-translator/releases/tag/v0.10.1)
 
 [安装与迁移说明](docs/Windows使用说明.md) · [安全与数据说明](SECURITY.md) · [开发维护](docs/维护说明.md) · [扩展商店发布准备](docs/扩展商店发布.md)
 

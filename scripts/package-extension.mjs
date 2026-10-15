@@ -1,8 +1,8 @@
 import { constants } from 'node:fs';
-import { copyFile, lstat, mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
-import { basename, join, resolve } from 'node:path';
+import { copyFile, lstat, mkdir, readFile, realpath } from 'node:fs/promises';
+import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { copyListed, exists, listFiles, powershell, sha256, sourceRoot, stagingDirectory } from './release-utils.mjs';
+import { copyListed, exists, listFiles, powershell, sourceRoot, stagingDirectory } from './release-utils.mjs';
 
 // Every browser runtime file must be reviewed and named here; never package the repository recursively.
 export const extensionFiles = [
@@ -52,9 +52,8 @@ export async function packageExtension() {
   await mkdir(stagingRoot, { recursive: true });
   await requireDirectDirectory(stagingRoot);
   const output = join(release, `F1TV-ZH-Chrome-v${packageInfo.version}.zip`);
-  const checksumOutput = `${output}.sha256`;
-  if (await exists(output) || await exists(checksumOutput)) {
-    throw Error('Release ZIP or checksum already exists; refusing to overwrite either file.');
+  if (await exists(output)) {
+    throw Error('Release ZIP already exists.');
   }
 
   const stage = await stagingDirectory('chrome-extension');
@@ -77,14 +76,9 @@ export async function packageExtension() {
     `, { F1_PAYLOAD: payload, F1_ZIP: zip }));
     assertFileList(archiveFiles, expected, 'ZIP');
 
-    const digest = sha256(await readFile(zip));
-    const checksum = join(stage.directory, 'extension.sha256');
-    await writeFile(checksum, `${digest}  ${basename(output)}\n`, { flag: 'wx' });
-    // Exclusive copies also reject files created after the preflight check.
     await copyFile(zip, output, constants.COPYFILE_EXCL);
-    await copyFile(checksum, checksumOutput, constants.COPYFILE_EXCL);
-    console.log(`Created ${output}\nSHA256 ${digest}\nChecksum ${checksumOutput}`);
-    return { zip: output, checksum: checksumOutput, sha256: digest };
+    console.log(`Created ${output}`);
+    return { zip: output };
   } finally {
     await stage.cleanup();
   }
